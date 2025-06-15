@@ -252,7 +252,7 @@ impl WgpuEnv {
             desired_maximum_frame_latency: 2,
         };
 
-        let renderer = Renderer::new(&device, &config);
+        let renderer = Renderer::new(&device, &queue, &config);
 
         Self {
             renderer,
