@@ -1,5 +1,5 @@
 import super::util::{
-    system::{viewport, cover_ratio},
+    system::{viewport, viewport_cover_ratio, viewport_fit_ratio},
     quad_vertex::{get_quad_vertex_sign, flip_y},
 };
 
@@ -10,7 +10,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOut {
     let instance_vertex_sign = get_quad_vertex_sign(vertex_index);
 
     out.clip_position = vec4f(instance_vertex_sign, 0, 1);
-    out.tex_coords = 0.5 + 0.5 * flip_y(instance_vertex_sign * cover_ratio());
+    out.tex_coords = 0.5 + 0.5 * flip_y(instance_vertex_sign * viewport_cover_ratio());
 
     return out;
 }

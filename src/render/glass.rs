@@ -1,20 +1,33 @@
 use wesl::include_wesl;
 use wgpu::util::DeviceExt;
 
-use super::system::SystemGroup;
+use super::{system::SystemGroup, wallpaper::Wallpaper};
 
 pub struct Glass {
     boxes: Vec<GlassBox>,
     instances: wgpu::Buffer,
+    pipeline: wgpu::RenderPipeline,
 }
 impl Glass {
-    pub fn draw(&self, render_pass: &mut wgpu::RenderPass) {}
+    pub fn draw(
+        &self,
+        render_pass: &mut wgpu::RenderPass,
+        system: &SystemGroup,
+        wallpaper: &Wallpaper,
+    ) {
+        render_pass.set_pipeline(&self.pipeline);
+        render_pass.set_bind_group(0, &system.bind_group, &[]);
+        render_pass.set_bind_group(1, &wallpaper.texture.bind_group, &[]);
+        render_pass.set_vertex_buffer(0, self.instances.slice(..));
+        render_pass.draw(0..6, 0..self.boxes.len() as _);
+    }
     pub fn new(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
         system: &SystemGroup,
+        wallpaper: &Wallpaper,
     ) -> Self {
-        let boxes = vec![GlassBox::new([0.0; 2], [0.5; 2])];
+        let boxes = vec![GlassBox::new([50.0; 2], [400.0, 200.0])];
         let instance_count = boxes.len() as u32;
         let instances = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),
@@ -29,7 +42,10 @@ impl Glass {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("glass render pipeline layout"),
-            bind_group_layouts: &[&system.bind_group_layout],
+            bind_group_layouts: &[
+                &system.bind_group_layout,
+                &wallpaper.texture.bind_group_layout,
+            ],
             push_constant_ranges: &[],
         });
 
@@ -74,22 +90,23 @@ impl Glass {
             cache: None,
         });
 
-        Self { boxes, instances }
+        Self {
+            boxes,
+            instances,
+            pipeline,
+        }
     }
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GlassBox {
-    pub center: [f32; 2],
-    pub half_extents: [f32; 2],
+    pub position: [f32; 2],
+    pub size: [f32; 2],
 }
 impl GlassBox {
-    pub fn new(center: [f32; 2], half_extents: [f32; 2]) -> Self {
-        Self {
-            center,
-            half_extents,
-        }
+    pub fn new(position: [f32; 2], size: [f32; 2]) -> Self {
+        Self { position, size }
     }
     const ATTRIBS: [wgpu::VertexAttribute; 2] = wgpu::vertex_attr_array![
         0 => Float32x2,

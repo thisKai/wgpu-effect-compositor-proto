@@ -5,6 +5,14 @@ fn get_quad_vertex_sign(vertex_index: u32) -> vec2f {
 fn flip_y(p: vec2f) -> vec2f {
     return p * FLIP_Y;
 }
+fn cover_ratio(size: vec2f) -> vec2f {
+    let max_dimension = max(size.x, size.y);
+    return size / max_dimension;
+}
+fn fit_ratio(size: vec2f) -> vec2f {
+    let min_dimension = min(size.x, size.y);
+    return size / min_dimension;
+}
 
 const FLIP_Y = vec2f(1, -1);
 

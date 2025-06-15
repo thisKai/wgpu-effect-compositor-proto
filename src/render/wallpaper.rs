@@ -4,7 +4,7 @@ use super::system::SystemGroup;
 
 pub struct Wallpaper {
     pipeline: wgpu::RenderPipeline,
-    texture: WallpaperTexture,
+    pub texture: WallpaperTexture,
 }
 impl Wallpaper {
     pub fn draw(&self, render_pass: &mut wgpu::RenderPass, system: &SystemGroup) {
@@ -76,9 +76,9 @@ impl Wallpaper {
         Self { pipeline, texture }
     }
 }
-struct WallpaperTexture {
-    bind_group_layout: wgpu::BindGroupLayout,
-    bind_group: wgpu::BindGroup,
+pub struct WallpaperTexture {
+    pub bind_group_layout: wgpu::BindGroupLayout,
+    pub bind_group: wgpu::BindGroup,
 }
 impl WallpaperTexture {
     fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
