@@ -1,19 +1,23 @@
 use wesl::include_wesl;
 
+use super::system::SystemGroup;
+
 pub struct Wallpaper {
     pipeline: wgpu::RenderPipeline,
     texture: WallpaperTexture,
 }
 impl Wallpaper {
-    pub fn draw(&self, render_pass: &mut wgpu::RenderPass) {
+    pub fn draw(&self, render_pass: &mut wgpu::RenderPass, system: &SystemGroup) {
         render_pass.set_pipeline(&self.pipeline);
-        render_pass.set_bind_group(0, &self.texture.bind_group, &[]);
+        render_pass.set_bind_group(0, &system.bind_group, &[]);
+        render_pass.set_bind_group(1, &self.texture.bind_group, &[]);
         render_pass.draw(0..6, 0..1);
     }
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
+        system: &SystemGroup,
     ) -> Self {
         let texture = WallpaperTexture::new(device, queue);
 
@@ -24,7 +28,7 @@ impl Wallpaper {
         let wallpaper_render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("wallpaper pipeline layout"),
-                bind_group_layouts: &[&texture.bind_group_layout],
+                bind_group_layouts: &[&system.bind_group_layout, &texture.bind_group_layout],
                 push_constant_ranges: &[],
             });
 

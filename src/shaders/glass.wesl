@@ -1,7 +1,4 @@
-import super::util::{
-    system::{viewport, cover_ratio},
-    quad_vertex::{get_quad_vertex_sign, flip_y},
-};
+import super::util::quad_vertex::{get_quad_vertex_sign, flip_y};
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOut {
@@ -10,7 +7,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOut {
     let instance_vertex_sign = get_quad_vertex_sign(vertex_index);
 
     out.clip_position = vec4f(instance_vertex_sign, 0, 1);
-    out.tex_coords = 0.5 + 0.5 * flip_y(instance_vertex_sign * cover_ratio());
+    out.tex_coords = 0.5 + 0.5 * flip_y(instance_vertex_sign);
 
     return out;
 }
@@ -30,7 +27,7 @@ struct FragmentIn {
     @location(0) tex_coords: vec2f
 }
 
-@group(1) @binding(0)
+@group(0) @binding(0)
 var t_diffuse: texture_2d<f32>;
-@group(1) @binding(1)
+@group(0) @binding(1)
 var s_diffuse: sampler;

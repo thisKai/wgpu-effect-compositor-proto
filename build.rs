@@ -17,4 +17,5 @@ fn main() {
         wesl
     };
     wesl.build_artifact("wallpaper.wesl", "wallpaper");
+    wesl.build_artifact("glass.wesl", "glass");
 }
