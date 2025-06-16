@@ -2,7 +2,7 @@ import super::util::{
     system::{viewport, viewport_cover_ratio},
     quad_vertex::{get_quad_vertex_sign, flip_y, cover_ratio, fit_ratio},
     trig::{PI, TAU},
-    sdf::rect_sd,
+    sdf::{rect_sd, squircle_rect_sd},
     anti_alias::edge_step,
 };
 
@@ -115,7 +115,7 @@ fn fs_main(@builtin(position) viewport_position: vec4<f32>, in: FragmentIn) -> @
 
     let glass_sample = sqrt(glass(in, 20.0, 20.0));
     let corner_r = 64.0 * in.px;
-    let shape_d = rect_sd(in.position, in.aspect_ratio - corner_r) - corner_r;
+    let shape_d = squircle_rect_sd(in.position, in.aspect_ratio, corner_r, 3);
     let edge = edge_step(shape_d, in.px);
     let light = smoothstep(-corner_r / 2, 0.0, shape_d) * 0.125;
 
@@ -123,10 +123,10 @@ fn fs_main(@builtin(position) viewport_position: vec4<f32>, in: FragmentIn) -> @
 
     let bevel = corner_r;
     let max_refraction_d = 0.8;
-    let hairline_width_px = 2.0;
-    let hairline_reflection_d = corner_r;
+    let hairline_width_px = 1.5;
+    let hairline_reflection_d = corner_r * 2;
     // if shape_d < 0.0 {
-    let distance_per_pixel = in.px;
+    let distance_per_pixel = 1 * in.px;
     let distance_px = -shape_d / distance_per_pixel;
 
     let refraction_dir = -normalize(vec2f(dpdx(shape_d), dpdy(shape_d)));
@@ -135,7 +135,7 @@ fn fs_main(@builtin(position) viewport_position: vec4<f32>, in: FragmentIn) -> @
 
     let blurred_sample = textureSample(t_diffuse, s_diffuse, inst_tex_coord(in.position + offset, in)).rgb;
     let coverage = smoothstep(0.0, 1.0, distance_px);
-    rgb = mix(rgb, blurred_sample * 2, coverage);
+    rgb = mix(rgb, blurred_sample * 4, coverage);
 
     let hairline_coverage = smoothstep(0.0, 1.0, distance_px) * (1.0 - smoothstep(hairline_width_px, hairline_width_px + 1, distance_px));
     let outer_reflection_sample_coord = in.position - hairline_reflection_d * refraction_dir;
