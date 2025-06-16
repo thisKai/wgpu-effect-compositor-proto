@@ -37,7 +37,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32, instance: GlassBox) -> Vert
     out.center = center_rh * world_aspect_ratio;
     out.aspect_ratio = local_aspect_ratio;
     out.half_size = half_size * world_aspect_ratio;
-    out.px = 2.0 / instance.size_px.x;
+    out.px = 1.0 / min(instance.size_px.x, instance.size_px.y);
     // out.tex_coords = 0.5 + 0.5 * world_vertex_aspect;
 
     return out;
@@ -114,6 +114,7 @@ fn fs_main(@builtin(position) viewport_position: vec4<f32>, in: FragmentIn) -> @
 
 
     let glass_sample = sqrt(glass(in, 20.0, 20.0));
+    // let corner_r = 1.0 - (8 * in.px);
     let corner_r = 64.0 * in.px;
     let shape_d = squircle_rect_sd(in.position, in.aspect_ratio, corner_r, 3);
     let edge = edge_step(shape_d, in.px * 2);
@@ -121,10 +122,12 @@ fn fs_main(@builtin(position) viewport_position: vec4<f32>, in: FragmentIn) -> @
 
     var rgb = sqrt(textureSample(t_diffuse, s_diffuse, inst_tex_coord(in.position, in))).rgb;
 
-    let bevel = corner_r;
+    let bevel = 64.0 * in.px;
+    // let bevel = min(in.aspect_ratio.x, in.aspect_ratio.y);
+    // let bevel = 1.0 - (8 * in.px);
     let max_refraction_d = 0.8;
     let hairline_width_px = 1.0;
-    let hairline_reflection_d = corner_r * 2;
+    let hairline_reflection_d = 0.15;
     // if shape_d < 0.0 {
     let distance_per_pixel = 2 * in.px;
     let distance_px = -shape_d / distance_per_pixel;
@@ -134,25 +137,27 @@ fn fs_main(@builtin(position) viewport_position: vec4<f32>, in: FragmentIn) -> @
     let light_dir = normalize(vec3f(0, -3, 3));
     let half_dir = normalize(view_dir + light_dir);
 
-    let reflection_dir = normalize(vec2f(dpdx(shape_d), dpdy(shape_d)));
-    let spec_bevel_r = corner_r / 4;
+    let reflection_dir = clamp(normalize(vec2f(dpdx(shape_d), dpdy(shape_d))), vec2f(-1), vec2f(1));
+    let spec_bevel_r = bevel / 4;
     let bevel_s = pow(smoothstep(spec_bevel_r, -spec_bevel_r, shape_d), 1);
     let spec_bevel = pow(clamp(-shape_d - spec_bevel_r, 0, spec_bevel_r) / spec_bevel_r, 1.0);
     let z = pow(clamp(-shape_d - corner_r, 0, corner_r) / (corner_r * 32), 1.0);
     let reflection_percent = pow(clamp(1.0 + shape_d / (bevel / 1), 0, 1), 4);
 
     let n_xy = mix(reflection_dir, vec2f(0), bevel_s);
-    let reflection_dir3 = normalize(vec3f(n_xy, bevel_s));
-    // let n = mix(reflection_dir3, vec3f(0, 0, 1), bevel_s);
-    let n = reflection_dir3;
+    let reflection_dir3 = normalize(vec3f(reflection_dir, bevel_s));
+    let n = mix(reflection_dir3, vec3f(0, 0, 1), bevel_s);
+    // let n = vec3f(mix(clamp(reflection_dir, vec2f(-1), vec2f(1)), vec2f(0), bevel_s), bevel_s);
+    // let n = vec3f(mix(reflection_dir, vec2f(0), bevel_s), bevel_s);
 
 
-    let refraction_dir = -normalize(vec2f(dpdx(shape_d), dpdy(shape_d)));
+    let refraction_dir = -reflection_dir;
     let refraction_percent = pow(clamp(1.0 + shape_d / bevel, 0, 1), 4);
     let offset = max_refraction_d * refraction_percent * refraction_dir;
 
     let diffuse_product = max(0.0, dot(n, light_dir));
     let diffuse_intensity = (diffuse_product * refraction_percent * 4) + 1;
+    // let diffuse_intensity = 1.0;
 
     let specular_coefficient = 256.0;
     let specular_product = max(0.0, dot(n, half_dir));
@@ -170,7 +175,8 @@ fn fs_main(@builtin(position) viewport_position: vec4<f32>, in: FragmentIn) -> @
     let outer_reflection_sample = textureSample(t_diffuse, s_diffuse, inst_tex_coord(outer_reflection_sample_coord, in)).rgb;
 
     rgb += hairline_coverage * outer_reflection_sample * 2 * diffuse_intensity;
-    rgb += outer_reflection_sample * specular_intensity * 64;
+    // rgb += outer_reflection_sample * specular_intensity * 64;
+    // rgb += edge_glow(in.position + offset, in, shape_d);
     // }
 
 
@@ -185,6 +191,16 @@ fn fs_main(@builtin(position) viewport_position: vec4<f32>, in: FragmentIn) -> @
     // return vec4f(1);
 }
 
+fn edge_glow(inst_coord: vec2f, in: FragmentIn, shape_d: f32) -> vec3f {
+    let rgb = vec3f(0x33, 0x99, 0xFF) / 255;
+    let white = vec3f(1);
+    let glow_radius = 16 * in.px;
+
+    let intensity = smoothstep(-glow_radius, 0, shape_d);
+    let inner_intensity = pow(intensity, 4) / 2;
+    return (rgb * intensity) + (white * inner_intensity);
+}
+
 fn blur(inst_coord: vec2f, in: FragmentIn, radius: f32) -> vec4f {
     var total = vec4f(0);
     var count = 0;
@@ -192,13 +208,13 @@ fn blur(inst_coord: vec2f, in: FragmentIn, radius: f32) -> vec4f {
     for (var y = -4; y <= 4; y++) {
         for (var x = -4; x <= 4; x++) {
             let offset = vec2f(f32(x), f32(y));
-            let weight = pow(length(1.0 - (offset / 4)), 4);
-            total += textureSample(t_diffuse, s_diffuse, inst_tex_coord(inst_coord + offset * in.px * radius, in)) * weight;
+            // let weight = pow(length(1.0 - (offset / 4)), 4);
+            total += textureSample(t_diffuse, s_diffuse, inst_tex_coord(inst_coord + offset * in.px * radius, in)) ;
             count ++;
         }
     }
 
-    return total / f32(count * 4);
+    return total / f32(count);
 }
 
 fn inst_tex_coord(inst_coord: vec2f, in: FragmentIn) -> vec2f {

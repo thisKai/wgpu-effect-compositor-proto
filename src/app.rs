@@ -67,25 +67,19 @@ impl ApplicationHandler for App {
                 self.env_mut().resize(new_size);
             }
             WindowEvent::CursorMoved { position, .. } => {
-                self.env().cursor_move(position);
+                self.env_mut().cursor_move(position);
             }
             WindowEvent::CursorLeft { .. } => {
                 self.env().cursor_leave();
             }
             WindowEvent::MouseInput {
-                state: ElementState::Pressed,
+                state,
                 button: MouseButton::Left,
                 ..
-            } => {
-                self.env().window.drag_window().unwrap();
-            }
-            WindowEvent::MouseInput {
-                state: ElementState::Released,
-                // button: MouseButton::Right,
-                ..
-            } => {
-                self.env_mut().mouse_release();
-            }
+            } => match state {
+                ElementState::Pressed => self.env_mut().mouse_press(),
+                ElementState::Released => self.env_mut().mouse_release(),
+            },
             WindowEvent::CloseRequested => {
                 event_loop.exit();
             }
@@ -170,15 +164,18 @@ impl WgpuEnv {
         self.renderer
             .resize(&self.queue, new_size.width, new_size.height);
     }
-    fn cursor_move(&self, position: PhysicalPosition<f64>) {
-        // self.renderer
-        //     .cursor_move(&self.queue, position.x, position.y);
+    fn cursor_move(&mut self, position: PhysicalPosition<f64>) {
+        self.renderer
+            .cursor_move(&self.queue, position.x, position.y);
     }
     fn cursor_leave(&self) {
-        // self.renderer.cursor_leave(&self.queue);
+        self.renderer.cursor_leave(&self.queue);
+    }
+    fn mouse_press(&mut self) {
+        self.renderer.mouse_press(&self.queue);
     }
     fn mouse_release(&mut self) {
-        // self.renderer.mouse_release(&self.queue);
+        self.renderer.mouse_release(&self.queue);
     }
     async fn new(window: Window) -> Self {
         let window = Arc::new(window);
