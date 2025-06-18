@@ -37,13 +37,13 @@ fn shape_anti_alias_distance(p: vec2f, shape_index: u32) -> f32 {
         }
     }
 }
-fn shape_normal(p: vec3f, shape_index: u32) -> vec3f {
-    let distance = shape_distance(p, shape_index);
-    let epsilon = vec2f(0.00001, 0);
+fn shape_normal(p: vec3f, shape_index: u32, inside: f32) -> vec3f {
+    let distance = shape_distance(p, shape_index) * inside;
+    let epsilon = vec2f(0.0001, 0);
     let n = distance - vec3f(
-        shape_distance(p - epsilon.xyy, shape_index),
-        shape_distance(p - epsilon.yxy, shape_index),
-        shape_distance(p - epsilon.yyx, shape_index),
+        shape_distance(p - epsilon.xyy, shape_index) * inside,
+        shape_distance(p - epsilon.yxy, shape_index) * inside,
+        shape_distance(p - epsilon.yyx, shape_index) * inside,
     );
     return normalize(n);
 }

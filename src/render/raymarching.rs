@@ -31,12 +31,12 @@ impl Raymarching {
     ) -> Self {
         let shapes = Shapes::new(vec![
             Shape::Sphere(Sphere {
-                center: [-0.25, -0.25, 0.5],
-                radius: 0.25,
+                center: [-0.25, -0.25, 0.175],
+                radius: 0.125,
             }),
             Shape::Sphere(Sphere {
-                center: [0.25, 0.25, 0.5],
-                radius: 0.25,
+                center: [0.25, 0.25, 0.175],
+                radius: 0.125,
             }),
         ]);
         let shapes_buffers = ShapesBuffers::new(&shapes, device);
