@@ -4,7 +4,8 @@ import super::ray::{
     Ray_initial_state,
     Ray_position,
 };
-import super::scene::{scene_distance, MAX_DISTANCE, SPHERE_COUNT};
+import super::scene::scene_distance;
+import super::shape::MAX_DISTANCE;
 
 fn raymarch(ray: Ray) -> RayMarch {
     var march = Ray_initial_state(ray);
