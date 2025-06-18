@@ -85,12 +85,22 @@ impl SystemGroup {
 #[repr(C)]
 #[derive(Default, Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Viewport {
+    pub size_px: [f32; 2],
     pub size: [f32; 2],
+    pub px: f32,
+    _padding: u32,
 }
 impl Viewport {
-    pub const fn new(width: u32, height: u32) -> Self {
+    pub fn new(width: u32, height: u32) -> Self {
+        let max_dimension = width.max(height) as f32;
+        let pixel = 2.0 / max_dimension;
+        let size_px = [width as _, height as _];
+        let size_uv = size_px.map(|d| d / max_dimension);
         Self {
-            size: [width as _, height as _],
+            size_px,
+            size: size_uv,
+            px: pixel,
+            _padding: 0,
         }
     }
 }

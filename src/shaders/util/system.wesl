@@ -7,6 +7,11 @@ var<uniform> cursor: Cursor;
 
 struct Viewport {
     size: vec2f,
+    size_uv: vec2f,
+    px: f32,
+}
+fn px(scalar: f32) -> f32 {
+    return scalar * viewport.px;
 }
 fn viewport_fit_ratio() -> vec2f {
     return fit_ratio(viewport.size);

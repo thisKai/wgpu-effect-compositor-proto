@@ -1,3 +1,5 @@
+import package::util::system::px;
+import package::util::anti_alias::edge_alpha;
 import super::ray::{
     Ray,
     RayState,
@@ -18,7 +20,7 @@ fn raymarch(ray: Ray) -> RayMarch {
         if march.ray_distance > MAX_DISTANCE {
             return miss_distance(march);
         }
-        if march.scene_distance < MIN_SURFACE_DISTANCE {
+        if march.scene_distance < px(MIN_SURFACE_DISTANCE_PX) {
             return hit(march);
         }
     }
@@ -26,7 +28,7 @@ fn raymarch(ray: Ray) -> RayMarch {
     return miss_steps(march);
 }
 
-const MIN_SURFACE_DISTANCE = 1e-3;
+const MIN_SURFACE_DISTANCE_PX = 2;
 const MAX_STEPS = 256;
 
 fn is_hit(result: RayMarch) -> bool {
@@ -34,7 +36,7 @@ fn is_hit(result: RayMarch) -> bool {
 }
 fn hit_alpha(result: RayMarch) -> f32 {
     let d = result.state.scene_distance;
-    return smoothstep(MIN_SURFACE_DISTANCE, -0.003, d - MIN_SURFACE_DISTANCE);
+    return edge_alpha(d);
 }
 
 fn hit(state: RayState) -> RayMarch {
