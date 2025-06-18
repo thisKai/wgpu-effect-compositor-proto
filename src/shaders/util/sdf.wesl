@@ -1,5 +1,9 @@
 import super::norm::p_norm_length2;
 
+fn circle_sd(p: vec2f, r: f32) -> f32 {
+    return length(p) - r;
+}
+
 fn rect_sd(p: vec2f, b: vec2f) -> f32 {
     let d = abs(p) - b;
     return length(max(d, vec2(0.0))) + min(max(d.x, d.y), 0.0);

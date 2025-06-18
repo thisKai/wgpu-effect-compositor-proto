@@ -135,7 +135,12 @@ impl Glass {
         system: &SystemGroup,
         wallpaper: &Wallpaper,
     ) -> Self {
-        let boxes = vec![GlassBox::new([50.0; 2], [256.0, 256.0])];
+        let boxes = vec![
+            GlassBox::new([50.0; 2], [256.0, 256.0]),
+            GlassBox::new([200.0; 2], [256.0, 64.0]),
+            GlassBox::new([300.0; 2], [256.0, 32.0]),
+            GlassBox::new([400.0; 2], [64.0, 64.0]),
+        ];
         let instance_count = boxes.len() as u32;
         let instances = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),

@@ -26,7 +26,7 @@ fn fs_main(in: FragmentIn) -> @location(0) vec4f {
     let cursor_uv = (cursor.position / viewport.size * 2) - 1;
     let cursor_d = distance(uv, cursor_uv)-0.5;
     let cursor_color = vec3f(1) * smoothstep(0, -1, cursor_d);
-    return sqrt(textureSample(t_diffuse, s_diffuse, in.tex_coords) + vec4f(cursor_color, 0.5));
+    return sqrt(textureSample(t_diffuse, s_diffuse, in.tex_coords));
 }
 
 struct FragmentIn {
