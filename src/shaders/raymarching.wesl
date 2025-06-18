@@ -48,12 +48,12 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         // let refraction_in_r = raymarch(refraction_in_ray, RayMarchOptions_inside_shape(r.state.scene.closest_shape_index));
         let refraction_in_r = raymarch(refraction_in_ray, RayMarchOptions_bg());
 
-        let refraction_out_incident_vec = normalize(refraction_in_r.state.position - refraction_in_ray.origin);
-        let refraction_out_dir = refract(refraction_out_incident_vec, refraction_in_r.normal, ior);
-        let refraction_out_ray = Ray(refraction_in_r.state.position + (refraction_out_dir * px(1)), refraction_out_dir);
-        let refraction_out_r = raymarch(refraction_out_ray, RayMarchOptions_scene());
+        // let refraction_out_incident_vec = normalize(refraction_in_r.state.position - refraction_in_ray.origin);
+        // let refraction_out_dir = refract(refraction_out_incident_vec, refraction_in_r.normal, ior);
+        // let refraction_out_ray = Ray(refraction_in_r.state.position + (refraction_out_dir * px(1)), refraction_out_dir);
+        // let refraction_out_r = raymarch(refraction_out_ray, RayMarchOptions_scene());
 
-        let rgb = vec3f(select(0, 1, is_hit(refraction_in_r)));
+        // let rgb = vec3f(select(0, 1, is_hit(refraction_in_r)));
 
         let tex_coord = 0.5 + 0.5 * refraction_in_r.state.position.xy;
         let sample = textureSample(t_diffuse, s_diffuse, tex_coord);
@@ -64,7 +64,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         // return vec4f(rgb, a);
         // return vec4f(0.5 + 0.5 * refraction_in_r.normal, a);
     } else {
-        return vec4f(0);
+        discard;
+        // return vec4f(0);
     }
     // return sqrt(textureSample(t_diffuse, s_diffuse, in.tex_coords / 2));
 }

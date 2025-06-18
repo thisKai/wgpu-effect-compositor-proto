@@ -1,3 +1,5 @@
+import package::util::system::{px, px2, px3, viewport};
+
 @group(2) @binding(0) var<storage, read> shapes: array<Shape>;
 @group(2) @binding(1) var<storage, read> spheres: array<Sphere>;
 
@@ -55,11 +57,11 @@ fn plane_distance(p: vec3f, n: vec3f, h: f32) -> f32 {
 
 fn sphere_distance(p: vec3f, sphere_index: u32) -> f32 {
     let sphere = spheres[sphere_index];
-    return distance(p, sphere.center) - sphere.radius;
+    return distance(p, vec3f(px2(sphere.center.xy - (viewport.size / 2)), px(sphere.center.z))) - px(sphere.radius);
 }
 fn sphere_anti_alias_distance(p: vec2f, sphere_index: u32) -> f32 {
     let sphere = spheres[sphere_index];
-    return distance(p, sphere.center.xy) - sphere.radius;
+    return distance(p, (1 * px2(sphere.center.xy - (viewport.size / 2)))) - px(sphere.radius);
 }
 
 struct Sphere {

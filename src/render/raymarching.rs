@@ -3,10 +3,15 @@ use std::mem;
 use wesl::include_wesl;
 use wgpu::util::DeviceExt;
 
-use super::{system::SystemGroup, wallpaper::Wallpaper};
+use super::{
+    pointer::{PointerHit, PointerState},
+    system::SystemGroup,
+    wallpaper::Wallpaper,
+};
 
 pub struct Raymarching {
     shapes: Shapes,
+    state: PointerState,
     shapes_buffers: ShapesBuffers,
     pipeline: wgpu::RenderPipeline,
 }
@@ -23,6 +28,112 @@ impl Raymarching {
         render_pass.set_bind_group(2, &self.shapes_buffers.bind_group, &[]);
         render_pass.draw(0..6, 0..1);
     }
+
+    pub fn cursor_move(&mut self, queue: &wgpu::Queue, x: f64, y: f64) {
+        let next_state = match self.state.take() {
+            PointerState::Idle => {
+                let hit = self.shapes.find_hovered(x, y);
+                hit.map(|h| PointerState::Hovered {
+                    index: h.index,
+                    hover_position: h.local_position,
+                })
+                .unwrap_or_default()
+            }
+            PointerState::Hovered { index, .. } => {
+                let hit = self.shapes.check_hovered(index, x, y);
+                match hit {
+                    Some(hit) => PointerState::Hovered {
+                        index,
+                        hover_position: hit,
+                    },
+                    None => {
+                        let hit = self.shapes.find_hovered(x, y);
+                        hit.map(|h| PointerState::Hovered {
+                            index: h.index,
+                            hover_position: h.local_position,
+                        })
+                        .unwrap_or_default()
+                    }
+                }
+            }
+            PointerState::Pressed {
+                index,
+                press_position,
+            } => PointerState::Dragging {
+                index,
+                press_position,
+            },
+            PointerState::Dragging {
+                index,
+                press_position,
+            } => {
+                self.shapes.shapes[index].drag_move(press_position, [x as f32, y as f32]);
+                let shapes_data = self.shapes.buffer_data();
+
+                queue.write_buffer(
+                    &self.shapes_buffers.shapes,
+                    0,
+                    bytemuck::cast_slice(&shapes_data.shapes),
+                );
+                queue.write_buffer(
+                    &self.shapes_buffers.spheres,
+                    0,
+                    bytemuck::cast_slice(&shapes_data.spheres),
+                );
+
+                PointerState::Dragging {
+                    index,
+                    press_position,
+                }
+            }
+        };
+        self.state = next_state;
+    }
+    pub fn mouse_press(&mut self, queue: &wgpu::Queue) {
+        let next_state = match self.state.take() {
+            PointerState::Idle => PointerState::Idle,
+            PointerState::Hovered {
+                index,
+                hover_position,
+            } => PointerState::Pressed {
+                index,
+                press_position: hover_position,
+            },
+            PointerState::Pressed {
+                index,
+                press_position,
+            } => todo!(),
+            PointerState::Dragging {
+                index,
+                press_position,
+            } => todo!(),
+        };
+        self.state = next_state;
+    }
+    pub fn mouse_release(&mut self, queue: &wgpu::Queue) {
+        let next_state = match self.state.take() {
+            PointerState::Idle => PointerState::Idle,
+            PointerState::Hovered {
+                index,
+                hover_position,
+            } => todo!(),
+            PointerState::Pressed {
+                index,
+                press_position,
+            } => PointerState::Hovered {
+                index,
+                hover_position: press_position,
+            },
+            PointerState::Dragging {
+                index,
+                press_position,
+            } => PointerState::Hovered {
+                index,
+                hover_position: press_position,
+            },
+        };
+        self.state = next_state;
+    }
     pub fn new(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
@@ -31,12 +142,12 @@ impl Raymarching {
     ) -> Self {
         let shapes = Shapes::new(vec![
             Shape::Sphere(Sphere {
-                center: [-0.25, -0.25, 0.175],
-                radius: 0.125,
+                center: [100.0, 100.0, 60.0],
+                radius: 50.0,
             }),
             Shape::Sphere(Sphere {
-                center: [0.25, 0.25, 0.175],
-                radius: 0.125,
+                center: [500.0, 500.0, 60.0],
+                radius: 50.0,
             }),
         ]);
         let shapes_buffers = ShapesBuffers::new(&shapes, device);
@@ -101,6 +212,7 @@ impl Raymarching {
             pipeline,
             shapes,
             shapes_buffers,
+            state: Default::default(),
         }
     }
 }
@@ -182,6 +294,22 @@ impl Shapes {
     fn new(shapes: Vec<Shape>) -> Self {
         Self { shapes }
     }
+    pub fn check_hovered(&self, shape: usize, x: f64, y: f64) -> Option<[f32; 2]> {
+        let [x, y] = [x as f32, y as f32];
+        let b = self.shapes[shape].bounding_box();
+        b.hit_test(x, y).then(|| b.local_point(x, y))
+    }
+    pub fn find_hovered(&self, x: f64, y: f64) -> Option<PointerHit> {
+        let [x, y] = [x as f32, y as f32];
+        self.shapes.iter().enumerate().find_map(|(i, s)| {
+            let b = s.bounding_box();
+
+            Some(PointerHit {
+                index: i,
+                local_position: b.hit_test(x, y).then(|| b.local_point(x, y))?,
+            })
+        })
+    }
     fn buffer_data(&self) -> ShapesData {
         let mut shapes = Vec::new();
         let mut spheres = Vec::new();
@@ -212,6 +340,18 @@ struct ShapesData {
 enum Shape {
     Sphere(Sphere),
 }
+impl Shape {
+    fn bounding_box(&self) -> AABB {
+        match self {
+            Shape::Sphere(sphere) => sphere.bounding_box(),
+        }
+    }
+    fn drag_move(&mut self, press_position: [f32; 2], cursor_position: [f32; 2]) {
+        match self {
+            Shape::Sphere(sphere) => sphere.drag_move(press_position, cursor_position),
+        }
+    }
+}
 
 #[repr(u32)]
 enum ShapeKind {
@@ -231,4 +371,42 @@ struct ShapeId {
 struct Sphere {
     center: [f32; 3],
     radius: f32,
+}
+impl Sphere {
+    fn bounding_box(&self) -> AABB {
+        let [x, y, _] = self.center;
+        let center = [x, y];
+        let min = center.map(|d| d - self.radius);
+        let max = center.map(|d| d + self.radius);
+
+        AABB { min, max }
+    }
+    fn drag_move(&mut self, press_position: [f32; 2], cursor_position: [f32; 2]) {
+        let [x, y] = cursor_position;
+        let [press_x, press_y] = press_position;
+        let new_pos = [x - press_x, y - press_y].map(|d| d.round());
+        let [center_x, center_y] = new_pos.map(|d| d + self.radius);
+        let [_, _, center_z] = self.center;
+        self.center = [center_x, center_y, center_z];
+    }
+}
+
+struct AABB {
+    min: [f32; 2],
+    max: [f32; 2],
+}
+impl AABB {
+    pub fn local_point(&self, x: f32, y: f32) -> [f32; 2] {
+        let [left, top] = self.min;
+        let local_x = x - left;
+        let local_y = y - top;
+        [local_x, local_y]
+    }
+    pub fn hit_test(&self, x: f32, y: f32) -> bool {
+        let &Self {
+            min: [min_x, min_y],
+            max: [max_x, max_y],
+        } = self;
+        (min_x..max_x).contains(&x) && (min_y..max_y).contains(&y)
+    }
 }
