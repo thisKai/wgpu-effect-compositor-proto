@@ -1,8 +1,10 @@
 use glass::Glass;
+use raymarching::Raymarching;
 use system::SystemGroup;
 use wallpaper::Wallpaper;
 
 mod glass;
+mod raymarching;
 mod system;
 mod wallpaper;
 
@@ -10,11 +12,14 @@ pub struct Renderer {
     system: SystemGroup,
     wallpaper: Wallpaper,
     glass: Glass,
+    raymarching: Raymarching,
 }
 impl Renderer {
     pub fn draw(&self, render_pass: &mut wgpu::RenderPass) {
         self.wallpaper.draw(render_pass, &self.system);
-        self.glass.draw(render_pass, &self.system, &self.wallpaper);
+        // self.glass.draw(render_pass, &self.system, &self.wallpaper);
+        self.raymarching
+            .draw(render_pass, &self.system, &self.wallpaper);
     }
     pub fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
         self.system.resize(queue, width, height);
@@ -40,11 +45,13 @@ impl Renderer {
         let system = SystemGroup::new(device, config);
         let wallpaper = Wallpaper::new(device, queue, config, &system);
         let glass = Glass::new(device, config, &system, &wallpaper);
+        let raymarching = Raymarching::new(device, config, &system, &wallpaper);
 
         Self {
             system,
             wallpaper,
             glass,
+            raymarching,
         }
     }
 }
