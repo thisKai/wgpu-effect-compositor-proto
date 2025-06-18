@@ -31,11 +31,11 @@ impl Raymarching {
     ) -> Self {
         let shapes = Shapes::new(vec![
             Shape::Sphere(Sphere {
-                center: [-0.25, -0.25, 0.0],
+                center: [-0.25, -0.25, 0.5],
                 radius: 0.25,
             }),
             Shape::Sphere(Sphere {
-                center: [0.25, 0.25, 0.0],
+                center: [0.25, 0.25, 0.5],
                 radius: 0.25,
             }),
         ]);

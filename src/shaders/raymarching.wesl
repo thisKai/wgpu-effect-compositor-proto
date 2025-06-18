@@ -4,7 +4,7 @@ import super::util::{
 };
 import super::util::raymarch::{
     ray::Ray,
-    march::{raymarch, is_hit, hit_alpha},
+    march::{raymarch, is_hit, hit_alpha, hit_bg},
 };
 
 @vertex
@@ -31,9 +31,10 @@ struct VertexOut {
 fn fs_main(in: VertexOut) -> @location(0) vec4f {
     let ray = Ray(vec3f(in.uv, 0), vec3f(0, 0, 1));
     let r = raymarch(ray);
-    if is_hit(r) {
+    if is_hit(r) && !hit_bg(r) {
+    // if is_hit(r) {
         let a = hit_alpha(r);
-        return vec4f(vec3f(1), a);
+        return vec4f(0.5 + 0.5 * r.normal, a);
     } else {
         return vec4f(0);
     }
