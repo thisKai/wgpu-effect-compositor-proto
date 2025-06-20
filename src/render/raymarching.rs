@@ -147,12 +147,12 @@ impl Raymarching {
     ) -> Self {
         let shapes = Shapes::new(vec![
             Shape::Sphere(Sphere {
-                center: [100.0, 100.0, 24.0],
-                radius: 24.0,
+                center: [100.0, 100.0, 64.0],
+                radius: 48.0,
             }),
             Shape::Sphere(Sphere {
-                center: [500.0, 500.0, 48.0],
-                radius: 24.0,
+                center: [500.0, 500.0, 64.0],
+                radius: 48.0,
             }),
             Shape::RoundedBox(RoundedBox {
                 center: [250.0, 250.0, 64.0],
@@ -162,12 +162,12 @@ impl Raymarching {
             }),
             Shape::RoundedBox(RoundedBox {
                 center: [250.0, 50.0, 64.0],
-                half_size: [24.0, 24.0, 48.0],
-                radius: 24.0,
+                half_size: [48.0, 48.0, 48.0],
+                radius: 48.0,
                 ..Default::default()
             }),
             Shape::Sphere(Sphere {
-                center: [500.0, 500.0, 0.0],
+                center: [500.0, 500.0, 64.0],
                 radius: 64.0,
             }),
         ]);

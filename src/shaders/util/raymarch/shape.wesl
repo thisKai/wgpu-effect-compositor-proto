@@ -72,6 +72,17 @@ fn plane_distance(p: vec3f, n: vec3f, h: f32) -> f32 {
 
 fn sphere_distance(p: vec3f, sphere_index: u32) -> f32 {
     let sphere = spheres[sphere_index];
+    let xy = px2(sphere.center.xy - (viewport.size / 2));
+    let z = 1 - px(sphere.center.z);
+
+    let xy_d = length(p.xy - xy);
+    let z_d = p.z - z;
+
+    let d = p_norm_length2(vec2f(xy_d, z_d), 4);
+    return d - px(sphere.radius);
+}
+fn sphere_distance0(p: vec3f, sphere_index: u32) -> f32 {
+    let sphere = spheres[sphere_index];
     return distance(p, vec3f(px2(sphere.center.xy - (viewport.size / 2)), 1 - px(sphere.center.z))) - px(sphere.radius);
 }
 fn sphere_silhouette_distance(p: vec2f, sphere_index: u32) -> f32 {
