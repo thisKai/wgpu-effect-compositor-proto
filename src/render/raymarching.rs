@@ -1,4 +1,4 @@
-use std::mem;
+use std::{array, mem};
 
 use wesl::include_wesl;
 use wgpu::util::DeviceExt;
@@ -80,6 +80,11 @@ impl Raymarching {
                     0,
                     bytemuck::cast_slice(&shapes_data.spheres),
                 );
+                queue.write_buffer(
+                    &self.shapes_buffers.rounded_boxes,
+                    0,
+                    bytemuck::cast_slice(&shapes_data.rounded_boxes),
+                );
 
                 PointerState::Dragging {
                     index,
@@ -142,12 +147,28 @@ impl Raymarching {
     ) -> Self {
         let shapes = Shapes::new(vec![
             Shape::Sphere(Sphere {
-                center: [100.0, 100.0, 60.0],
-                radius: 50.0,
+                center: [100.0, 100.0, 24.0],
+                radius: 24.0,
             }),
             Shape::Sphere(Sphere {
-                center: [500.0, 500.0, 60.0],
-                radius: 50.0,
+                center: [500.0, 500.0, 48.0],
+                radius: 24.0,
+            }),
+            Shape::RoundedBox(RoundedBox {
+                center: [250.0, 250.0, 64.0],
+                half_size: [200.0, 100.0, 48.0],
+                radius: 24.0,
+                ..Default::default()
+            }),
+            Shape::RoundedBox(RoundedBox {
+                center: [250.0, 50.0, 64.0],
+                half_size: [24.0, 24.0, 48.0],
+                radius: 24.0,
+                ..Default::default()
+            }),
+            Shape::Sphere(Sphere {
+                center: [500.0, 500.0, 0.0],
+                radius: 64.0,
             }),
         ]);
         let shapes_buffers = ShapesBuffers::new(&shapes, device);
@@ -220,6 +241,7 @@ impl Raymarching {
 struct ShapesBuffers {
     shapes: wgpu::Buffer,
     spheres: wgpu::Buffer,
+    rounded_boxes: wgpu::Buffer,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub bind_group: wgpu::BindGroup,
 }
@@ -235,6 +257,11 @@ impl ShapesBuffers {
         let spheres = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("spheres buffer"),
             contents: bytemuck::cast_slice(&data.spheres),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
+        let rounded_boxes = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("rounded boxes buffer"),
+            contents: bytemuck::cast_slice(&data.rounded_boxes),
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -260,6 +287,16 @@ impl ShapesBuffers {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
             label: Some("shapes bind group layout"),
         });
@@ -274,6 +311,10 @@ impl ShapesBuffers {
                     binding: 1,
                     resource: spheres.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: rounded_boxes.as_entire_binding(),
+                },
             ],
             label: Some("shapes bind group"),
         });
@@ -281,6 +322,7 @@ impl ShapesBuffers {
         Self {
             shapes,
             spheres,
+            rounded_boxes,
             bind_group_layout,
             bind_group,
         }
@@ -313,6 +355,7 @@ impl Shapes {
     fn buffer_data(&self) -> ShapesData {
         let mut shapes = Vec::new();
         let mut spheres = Vec::new();
+        let mut rounded_boxes = Vec::new();
 
         for shape in &self.shapes {
             match shape {
@@ -326,29 +369,49 @@ impl Shapes {
                     };
                     shapes.push(shape);
                 }
+                Shape::RoundedBox(rounded_box) => {
+                    let rounded_box_index = rounded_boxes.len();
+                    rounded_boxes.push(*rounded_box);
+
+                    let shape = ShapeId {
+                        kind: ShapeKind::RoundedBox as _,
+                        kind_index: rounded_box_index as _,
+                    };
+                    shapes.push(shape);
+                }
             }
         }
 
-        ShapesData { shapes, spheres }
+        ShapesData {
+            shapes,
+            spheres,
+            rounded_boxes,
+        }
     }
 }
 struct ShapesData {
     shapes: Vec<ShapeId>,
     spheres: Vec<Sphere>,
+    rounded_boxes: Vec<RoundedBox>,
 }
 
 enum Shape {
     Sphere(Sphere),
+    RoundedBox(RoundedBox),
 }
 impl Shape {
     fn bounding_box(&self) -> AABB {
         match self {
             Shape::Sphere(sphere) => sphere.bounding_box(),
+            Shape::RoundedBox(rounded_box) => rounded_box.bounding_box(),
         }
     }
     fn drag_move(&mut self, press_position: [f32; 2], cursor_position: [f32; 2]) {
         match self {
             Shape::Sphere(sphere) => sphere.drag_move(press_position, cursor_position),
+            Shape::RoundedBox(rounded_box) => {
+                rounded_box.drag_move(press_position, cursor_position)
+            }
         }
     }
 }
@@ -357,6 +420,7 @@ impl Shape {
 enum ShapeKind {
     None,
     Sphere,
+    RoundedBox,
 }
 
 #[repr(C)]
@@ -386,6 +450,32 @@ impl Sphere {
         let [press_x, press_y] = press_position;
         let new_pos = [x - press_x, y - press_y].map(|d| d.round());
         let [center_x, center_y] = new_pos.map(|d| d + self.radius);
+        let [_, _, center_z] = self.center;
+        self.center = [center_x, center_y, center_z];
+    }
+}
+
+#[repr(C)]
+#[derive(Default, Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct RoundedBox {
+    center: [f32; 3],
+    _padding: u32,
+    half_size: [f32; 3],
+    radius: f32,
+    // _padding2: u32,
+}
+impl RoundedBox {
+    fn bounding_box(&self) -> AABB {
+        let min = array::from_fn(|i| self.center[i] - self.half_size[i]);
+        let max = array::from_fn(|i| self.center[i] + self.half_size[i]);
+
+        AABB { min, max }
+    }
+    fn drag_move(&mut self, press_position: [f32; 2], cursor_position: [f32; 2]) {
+        let [x, y] = cursor_position;
+        let [press_x, press_y] = press_position;
+        let new_pos = [x - press_x, y - press_y].map(|d| d.round());
+        let [center_x, center_y] = array::from_fn(|i| new_pos[i] + self.half_size[i]);
         let [_, _, center_z] = self.center;
         self.center = [center_x, center_y, center_z];
     }

@@ -27,18 +27,18 @@ impl Renderer {
     }
     pub fn cursor_move(&mut self, queue: &wgpu::Queue, x: f64, y: f64) {
         self.system.cursor_move(queue, x, y);
-        self.glass.cursor_move(queue, x, y);
+        // self.glass.cursor_move(queue, x, y);
         self.raymarching.cursor_move(queue, x, y);
     }
     pub fn cursor_leave(&self, queue: &wgpu::Queue) {
         self.system.cursor_leave(queue);
     }
     pub fn mouse_press(&mut self, queue: &wgpu::Queue) {
-        self.glass.mouse_press(queue);
+        // self.glass.mouse_press(queue);
         self.raymarching.mouse_press(queue);
     }
     pub fn mouse_release(&mut self, queue: &wgpu::Queue) {
-        self.glass.mouse_release(queue);
+        // self.glass.mouse_release(queue);
         self.raymarching.mouse_release(queue);
     }
     pub fn new(

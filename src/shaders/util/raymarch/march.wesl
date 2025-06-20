@@ -6,29 +6,38 @@ import super::ray::{
     Ray_initial_state,
     Ray_position,
 };
-import super::scene::{scene_distance, SceneQuery, SceneQuery_is_bg};
+import super::scene::{
+    scene_distance,
+    // scene_normal,
+    SceneQuery,
+    SceneQuery_is_bg,
+};
 import super::shape::{
     MAX_DISTANCE,
     shape_count,
     shape_normal,
     shape_distance,
-    shape_anti_alias_distance,
+    shape_silhouette_distance,
 };
 
 fn raymarch(ray: Ray, options: RayMarchOptions) -> RayMarch {
     var march = Ray_initial_state(ray);
 
     if options.shape_index <= shape_count() {
+        march.ray_distance += px(MIN_SURFACE_DISTANCE_PX * 2);
         for (var i = 0; i < MAX_STEPS; i++) {
             march.position = Ray_position(ray, march.ray_distance);
             let shape_d = shape_distance(march.position, options.shape_index) * options.inside;
             march.scene = SceneQuery(options.shape_index, shape_d);
-            march.ray_distance += shape_d;
+            march.ray_distance += abs(shape_d);
 
             if march.ray_distance > MAX_DISTANCE {
                 return miss_distance(march);
             }
-            if shape_d < 0.005 {
+            if abs(shape_d) < px(2 * MIN_SURFACE_DISTANCE_PX) {
+                // march.ray_distance += px(2 * MIN_SURFACE_DISTANCE_PX);
+                // march.position = Ray_position(ray, march.ray_distance);
+                // march.scene.distance -= px(2 * MIN_SURFACE_DISTANCE_PX);
                 return hit_inside(march);
             }
         }
@@ -60,18 +69,21 @@ fn RayMarchOptions_scene() -> RayMarchOptions {
 fn RayMarchOptions_bg() -> RayMarchOptions {
     return RayMarchOptions(1, shape_count());
 }
+fn RayMarchOptions_shape(shape_index: u32) -> RayMarchOptions {
+    return RayMarchOptions(1, shape_index);
+}
 fn RayMarchOptions_inside_shape(shape_index: u32) -> RayMarchOptions {
     return RayMarchOptions(-1, shape_index);
 }
 
 const MIN_SURFACE_DISTANCE_PX = 1;
-const MAX_STEPS = 1024;
+const MAX_STEPS = 256;
 
 fn is_hit(result: RayMarch) -> bool {
     return result.result == HIT;
 }
 fn hit_alpha(result: RayMarch) -> f32 {
-    let d = shape_anti_alias_distance(result.state.position.xy, result.state.scene.closest_shape_index);
+    let d = shape_silhouette_distance(result.state.position.xy, result.state.scene.closest_shape_index);
     // let d = result.state.scene.distance;
     return edge_alpha(d);
 }
@@ -83,7 +95,7 @@ fn hit(state: RayState) -> RayMarch {
     return RayMarch(HIT, state, shape_normal(state.position, state.scene.closest_shape_index, 1));
 }
 fn hit_inside(state: RayState) -> RayMarch {
-    return RayMarch(HIT, state, shape_normal(state.position, state.scene.closest_shape_index, 1));
+    return RayMarch(HIT, state, shape_normal(state.position, state.scene.closest_shape_index, -1));
 }
 fn miss_distance(state: RayState) -> RayMarch {
     return RayMarch(MISS_DISTANCE, state, vec3f(0, 0, 1));
