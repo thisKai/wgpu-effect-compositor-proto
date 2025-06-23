@@ -3,6 +3,15 @@ import super::util::{
     quad_vertex::{get_quad_vertex_sign, flip_y},
     anti_alias::edge_alpha,
 };
+import super::util::color::{
+    rygcbv_r,
+    rygcbv_g,
+    rygcbv_b,
+    rygcbv_y,
+    rygcbv_c,
+    rygcbv_v,
+    rygcbv_rgb,
+};
 import super::util::raymarch::{
     ray::Ray,
     march::{
@@ -142,15 +151,28 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
     // if is_hit(r) {
         let ior = 1.5;
         let ior_shift = 0.1;
-        let ior_rgb = vec3f(ior_shift, 0, -ior_shift) + ior;
+        // let ior_rgb = vec3f(ior_shift, 0, -ior_shift) + ior;
+        let ior_ryg = vec3f(3 * ior_shift, 2 * ior_shift, ior_shift) + ior;
+        let ior_cbv = vec3f(0, -ior_shift, -2 * ior_shift) + ior;
+
+        let ior_rgb = vec3f(ior_ryg.r, ior_ryg.z, ior_cbv.y) + ior;
+        let ior_ycv = vec3f(ior_ryg.y, ior_cbv.xz);
 
         let refraction_in_incident_vec = normalize(r.state.position - ray.origin);
 
         let refraction = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior);
 
+        // let refraction_r = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior_rgb.r);
+        // let refraction_g = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior_rgb.g);
+        // let refraction_b = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior_rgb.b);
+
         let refraction_r = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior_rgb.r);
         let refraction_g = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior_rgb.g);
         let refraction_b = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior_rgb.b);
+
+        let refraction_y = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior_ycv.r);
+        let refraction_c = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior_ycv.g);
+        let refraction_v = refraction_tex_coord_normal(r.state.position, ray.origin, r.normal, 1.0 / ior_ycv.b);
         // let refraction_in_dir = refract(refraction_in_incident_vec, r.normal, 1.0 / ior);
         // let refraction_in_ray = Ray(r.state.position, refraction_in_dir);
         // // let refraction_in_r = raymarch(refraction_in_ray, RayMarchOptions_shape(r.state.scene.closest_shape_index));
@@ -171,11 +193,16 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         // let tex_coord = 0.5 + 0.5 * sample_coord;
         // let sample = textureSample(t_diffuse, s_diffuse, tex_coord);
 
-        var sample_r = textureSample(t_diffuse, s_diffuse, refraction_r.tex_coord).r;
-        var sample_g = textureSample(t_diffuse, s_diffuse, refraction_g.tex_coord).g;
-        var sample_b = textureSample(t_diffuse, s_diffuse, refraction_b.tex_coord).b;
+        var sample_r = rygcbv_r(textureSample(t_diffuse, s_diffuse, refraction_r.tex_coord).rgb);
+        var sample_g = rygcbv_g(textureSample(t_diffuse, s_diffuse, refraction_g.tex_coord).rgb);
+        var sample_b = rygcbv_b(textureSample(t_diffuse, s_diffuse, refraction_b.tex_coord).rgb);
 
-        var sample = vec3f(sample_r, sample_g, sample_b);
+        var sample_y = rygcbv_y(textureSample(t_diffuse, s_diffuse, refraction_r.tex_coord).rgb);
+        var sample_c = rygcbv_c(textureSample(t_diffuse, s_diffuse, refraction_g.tex_coord).rgb);
+        var sample_v = rygcbv_v(textureSample(t_diffuse, s_diffuse, refraction_b.tex_coord).rgb);
+
+        var sample = rygcbv_rgb(sample_r, sample_y, sample_g, sample_c, sample_b, sample_v);
+        // var sample = vec3f(sample_r, sample_g, sample_b);
         // var sample = textureSample(t_diffuse, s_diffuse, refraction.tex_coord);
 
         // let blur_px = 6;
