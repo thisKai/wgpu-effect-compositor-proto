@@ -6,6 +6,7 @@ use wallpaper::Wallpaper;
 mod glass;
 mod pointer;
 mod raymarching;
+mod shape;
 mod system;
 mod wallpaper;
 

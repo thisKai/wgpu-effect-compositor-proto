@@ -157,7 +157,7 @@ impl Raymarching {
             Shape::RoundedBox(RoundedBox {
                 center: [250.0, 250.0, 64.0],
                 half_size: [200.0, 100.0, 48.0],
-                radius: 24.0,
+                radius: 48.0,
                 ..Default::default()
             }),
             Shape::RoundedBox(RoundedBox {
@@ -165,10 +165,6 @@ impl Raymarching {
                 half_size: [48.0, 48.0, 48.0],
                 radius: 48.0,
                 ..Default::default()
-            }),
-            Shape::Sphere(Sphere {
-                center: [500.0, 500.0, 64.0],
-                radius: 64.0,
             }),
         ]);
         let shapes_buffers = ShapesBuffers::new(&shapes, device);
@@ -474,8 +470,8 @@ impl RoundedBox {
     fn drag_move(&mut self, press_position: [f32; 2], cursor_position: [f32; 2]) {
         let [x, y] = cursor_position;
         let [press_x, press_y] = press_position;
-        let new_pos = [x - press_x, y - press_y].map(|d| d.round());
-        let [center_x, center_y] = array::from_fn(|i| new_pos[i] + self.half_size[i]);
+        let new_pos = [x - press_x, y - press_y];
+        let [center_x, center_y] = array::from_fn(|i| (new_pos[i] + self.half_size[i]).round());
         let [_, _, center_z] = self.center;
         self.center = [center_x, center_y, center_z];
     }

@@ -8,6 +8,7 @@ import super::ray::{
 };
 import super::scene::{
     scene_distance,
+    scene_distance_px_tile,
     // scene_normal,
     SceneQuery,
     SceneQuery_is_bg,
@@ -18,6 +19,8 @@ import super::shape::{
     shape_normal,
     shape_distance,
     shape_silhouette_distance,
+    cuboid_sd,
+    rect_sd,
 };
 
 fn raymarch(ray: Ray, options: RayMarchOptions) -> RayMarch {

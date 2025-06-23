@@ -5,6 +5,8 @@ use wgpu::util::DeviceExt;
 
 use super::{system::SystemGroup, wallpaper::Wallpaper};
 
+mod layer;
+
 pub struct Glass {
     boxes: Vec<GlassBox>,
     instances: wgpu::Buffer,

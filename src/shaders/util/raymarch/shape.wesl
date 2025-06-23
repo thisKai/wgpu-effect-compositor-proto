@@ -60,7 +60,7 @@ fn shape_normal0(p: vec3f, shape_index: u32, inside: f32) -> vec3f {
 }
 
 fn shape_normal(p: vec3f, shape_index: u32, inside: f32) -> vec3f {
-    let h = 1e-3;
+    let h = px(1);
     let k = vec2f(1, -1);
     return normalize(k.xyy * shape_distance(p + k.xyy * h, shape_index) + k.yyx * shape_distance(p + k.yyx * h, shape_index) + k.yxy * shape_distance(p + k.yxy * h, shape_index) + k.xxx * shape_distance(p + k.xxx * h, shape_index));
 }
@@ -69,6 +69,18 @@ fn plane_distance(p: vec3f, n: vec3f, h: f32) -> f32 {
   // n must be normalized
     return dot(p, n) + h;
 }
+fn plane_intersect_distance(ro: vec3f, rd: vec3f, p: vec4f) -> f32 {
+    // plane degined by p (p.xyz must be normalized)
+    return -(dot(ro, p.xyz) + p.w) / dot(rd, p.xyz);
+}
+
+fn capsule_sd(p: vec3f, a: vec3f, b: vec3f, r: f32) -> f32 {
+    let pa = p - a;
+    let ba = b - a;
+    let h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba * h) - r;
+}
+
 
 fn sphere_distance(p: vec3f, sphere_index: u32) -> f32 {
     let sphere = spheres[sphere_index];
