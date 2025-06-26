@@ -1,9 +1,13 @@
 import package::util::system::{px, px2, px3, viewport};
 import package::util::norm::{p_norm_length2, p_norm_length3};
+import package::shape::sdf::lpm_norm::superformula_sd;
+import package::shape::sdf::extrude::extrude_p;
 
 @group(2) @binding(0) var<storage, read> shapes: array<Shape>;
 @group(2) @binding(1) var<storage, read> spheres: array<Sphere>;
 @group(2) @binding(2) var<storage, read> rounded_boxes: array<RoundedBox>;
+@group(2) @binding(3) var<storage, read> superformulas: array<SuperformulaRaw>;
+
 
 fn shape_count() -> u32 {
     return arrayLength(&shapes);
@@ -17,6 +21,7 @@ struct Shape {
 const SHAPE_NONE = 0;
 const SHAPE_SPHERE = 1;
 const SHAPE_ROUNDED_BOX = 2;
+const SHAPE_SUPERFORMULA = 3;
 
 const MAX_DISTANCE = 100.0;
 
@@ -29,6 +34,9 @@ fn shape_distance(p: vec3f, shape_index: u32) -> f32 {
         case SHAPE_ROUNDED_BOX {
             return rounded_box_distance(p, shape.kind_index);
         }
+        // case SHAPE_SUPERFORMULA {
+        //     return superformula_distance(p, shape.kind_index);
+        // }
         default {
             return plane_distance(p, vec3f(0, 0, -1), 1);
         }
@@ -43,6 +51,9 @@ fn shape_silhouette_distance(p: vec2f, shape_index: u32) -> f32 {
         case SHAPE_ROUNDED_BOX {
             return rounded_box_silhouette_distance(p, shape.kind_index);
         }
+        // case SHAPE_SUPERFORMULA {
+        //     return superformula_silhouette_distance(p, shape.kind_index);
+        // }
         default {
             return 0.0;
         }
@@ -147,4 +158,42 @@ struct RoundedBox {
     center: vec3f,
     half_size: vec3f,
     radius: f32,
+}
+
+struct SuperformulaRaw {
+    data: array<f32,9>,
+}
+fn superformula_distance(p: vec3f, superformula_index: u32) -> f32 {
+    let superformula = Superformula_from_raw(superformulas[superformula_index]);
+
+    let xy = px2(superformula.center.xy - (viewport.size / 2));
+    let z = 1 - px(superformula.center.z);
+
+    let p_t = p - vec3f(xy, z);
+    let d2 = superformula_sd(p_t.xy, superformula.sides, px2(superformula.radii), superformula.exponents);
+
+    return extrude_p(d2, p_t.z, px(64), 4) - px(64);
+}
+fn superformula_silhouette_distance(p: vec2f, superformula_index: u32) -> f32 {
+    let superformula = Superformula_from_raw(superformulas[superformula_index]);
+
+    let center = px2(superformula.center.xy - (viewport.size / 2));
+
+    let p_t = p - center;
+    return superformula_sd(p_t.xy, superformula.sides, px2(superformula.radii), superformula.exponents) - px(64);
+}
+
+struct Superformula {
+    center: vec3f,
+    sides: f32,
+    radii: vec2f,
+    exponents: vec3f,
+}
+fn Superformula_from_raw(raw: SuperformulaRaw) -> Superformula {
+    let data = raw.data;
+    let center = vec3f(data[0], data[1], data[2]);
+    let sides = data[3];
+    let radii = vec2f(data[4], data[5]);
+    let exponents = vec3f(data[6], data[7], data[8]);
+    return Superformula(center, sides, radii, exponents);
 }

@@ -4,6 +4,7 @@ import super::util::{
     anti_alias::edge_alpha,
 };
 import super::util::color::{
+    sat,
     rygcbv_r,
     rygcbv_g,
     rygcbv_b,
@@ -138,6 +139,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         // return vec4f(((vec3f(0, 0, (r.state.position.z) / px(128)) + (vec3f(0, 0, scene.z) * 0))), alpha);
 
         return vec4f((0.5 + 0.5 * r.normal), alpha);
+        // return vec4f(alpha);
         // return vec4f(sqrt(sample + lit_sample), alpha);
     }
 
@@ -152,8 +154,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         let ior = 1.5;
         let ior_shift = 0.1;
         // let ior_rgb = vec3f(ior_shift, 0, -ior_shift) + ior;
-        let ior_ryg = vec3f(3 * ior_shift, 2 * ior_shift, ior_shift) + ior;
-        let ior_cbv = vec3f(0, -ior_shift, -2 * ior_shift) + ior;
+        let ior_ryg = (vec3f(0, 1, 2) * ior_shift) + ior;
+        let ior_cbv = (vec3f(3, 4, 5) * ior_shift) + ior;
 
         let ior_rgb = vec3f(ior_ryg.r, ior_ryg.z, ior_cbv.y) + ior;
         let ior_ycv = vec3f(ior_ryg.y, ior_cbv.xz);
@@ -202,6 +204,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         var sample_v = rygcbv_v(textureSample(t_diffuse, s_diffuse, refraction_b.tex_coord).rgb);
 
         var sample = rygcbv_rgb(sample_r, sample_y, sample_g, sample_c, sample_b, sample_v);
+        sample = sat(sample, 1.25);
         // var sample = vec3f(sample_r, sample_g, sample_b);
         // var sample = textureSample(t_diffuse, s_diffuse, refraction.tex_coord);
 

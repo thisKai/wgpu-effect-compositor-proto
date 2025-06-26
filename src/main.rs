@@ -1,6 +1,8 @@
 use app::App;
 use winit::event_loop::EventLoop;
 
+#[macro_use]
+mod macros;
 mod app;
 mod render;
 

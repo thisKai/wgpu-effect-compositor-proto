@@ -87,11 +87,11 @@ impl WallpaperTexture {
         let wallpaper_rgba = wallpaper_image.to_rgba8();
 
         use image::GenericImageView;
-        let dimensions = wallpaper_image.dimensions();
+        let (width, height) = wallpaper_image.dimensions();
 
         let texture_size = wgpu::Extent3d {
-            width: dimensions.0,
-            height: dimensions.1,
+            width,
+            height,
             // All textures are stored as 3D, we represent our 2D texture
             // by setting depth to 1.
             depth_or_array_layers: 1,
@@ -131,8 +131,8 @@ impl WallpaperTexture {
             // The layout of the texture
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(4 * dimensions.0),
-                rows_per_image: Some(dimensions.1),
+                bytes_per_row: Some(4 * width),
+                rows_per_image: Some(height),
             },
             texture_size,
         );
@@ -144,8 +144,8 @@ impl WallpaperTexture {
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Linear,
             ..Default::default()
         });
 
@@ -154,7 +154,7 @@ impl WallpaperTexture {
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                         ty: wgpu::BindingType::Texture {
                             multisampled: false,
                             view_dimension: wgpu::TextureViewDimension::D2,

@@ -1,3 +1,9 @@
+fn sat(rgb: vec3f, intensity: f32) -> vec3f {
+    let l = vec3(0.2125, 0.7154, 0.0721);
+    let grayscale = vec3(dot(rgb, l));
+    return mix(grayscale, rgb, intensity);
+}
+
 fn rygcbv_r(rgb: vec3f) -> f32 {
     return rgb.r / 2;
 }

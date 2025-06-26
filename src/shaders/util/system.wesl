@@ -23,6 +23,10 @@ fn px23(vector3: vec3f) -> vec3f {
     return vector3 * viewport.px;
 }
 
+fn px2_rh(vector2: vec2f) -> vec2f {
+    return px2(vector2 - (viewport.size / 2));
+}
+
 fn viewport_fit_ratio() -> vec2f {
     return fit_ratio(viewport.size);
 }

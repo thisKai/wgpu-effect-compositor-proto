@@ -166,6 +166,12 @@ impl Raymarching {
                 radius: 48.0,
                 ..Default::default()
             }),
+            Shape::Superformula(Superformula {
+                center: [250.0, 100.0, 64.0],
+                sides: 5.0,
+                radii: [128.0; 2],
+                exponents: [3.0; 3],
+            }),
         ]);
         let shapes_buffers = ShapesBuffers::new(&shapes, device);
 
@@ -191,7 +197,10 @@ impl Raymarching {
                 module: &shader,
                 entry_point: Some("vs_main"),
                 buffers: &[],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                compilation_options: wgpu::PipelineCompilationOptions {
+                    constants: &[("SHAPE_GROUP", 2.0)],
+                    ..Default::default()
+                },
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -238,6 +247,7 @@ struct ShapesBuffers {
     shapes: wgpu::Buffer,
     spheres: wgpu::Buffer,
     rounded_boxes: wgpu::Buffer,
+    superformulas: wgpu::Buffer,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub bind_group: wgpu::BindGroup,
 }
@@ -258,6 +268,11 @@ impl ShapesBuffers {
         let rounded_boxes = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("rounded boxes buffer"),
             contents: bytemuck::cast_slice(&data.rounded_boxes),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
+        let superformulas = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("superformulas buffer"),
+            contents: bytemuck::cast_slice(&data.superformulas),
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -293,6 +308,16 @@ impl ShapesBuffers {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
             label: Some("shapes bind group layout"),
         });
@@ -311,6 +336,10 @@ impl ShapesBuffers {
                     binding: 2,
                     resource: rounded_boxes.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: superformulas.as_entire_binding(),
+                },
             ],
             label: Some("shapes bind group"),
         });
@@ -319,6 +348,7 @@ impl ShapesBuffers {
             shapes,
             spheres,
             rounded_boxes,
+            superformulas,
             bind_group_layout,
             bind_group,
         }
@@ -352,6 +382,7 @@ impl Shapes {
         let mut shapes = Vec::new();
         let mut spheres = Vec::new();
         let mut rounded_boxes = Vec::new();
+        let mut superformulas = Vec::new();
 
         for shape in &self.shapes {
             match shape {
@@ -375,6 +406,16 @@ impl Shapes {
                     };
                     shapes.push(shape);
                 }
+                Shape::Superformula(superformula) => {
+                    let superformula_index = superformulas.len();
+                    superformulas.push(*superformula);
+
+                    let shape = ShapeId {
+                        kind: ShapeKind::Superformula as _,
+                        kind_index: superformula_index as _,
+                    };
+                    shapes.push(shape);
+                }
             }
         }
 
@@ -382,6 +423,7 @@ impl Shapes {
             shapes,
             spheres,
             rounded_boxes,
+            superformulas,
         }
     }
 }
@@ -389,17 +431,20 @@ struct ShapesData {
     shapes: Vec<ShapeId>,
     spheres: Vec<Sphere>,
     rounded_boxes: Vec<RoundedBox>,
+    superformulas: Vec<Superformula>,
 }
 
 enum Shape {
     Sphere(Sphere),
     RoundedBox(RoundedBox),
+    Superformula(Superformula),
 }
 impl Shape {
     fn bounding_box(&self) -> AABB {
         match self {
             Shape::Sphere(sphere) => sphere.bounding_box(),
             Shape::RoundedBox(rounded_box) => rounded_box.bounding_box(),
+            Shape::Superformula(superformula) => superformula.bounding_box(),
         }
     }
     fn drag_move(&mut self, press_position: [f32; 2], cursor_position: [f32; 2]) {
@@ -407,6 +452,9 @@ impl Shape {
             Shape::Sphere(sphere) => sphere.drag_move(press_position, cursor_position),
             Shape::RoundedBox(rounded_box) => {
                 rounded_box.drag_move(press_position, cursor_position)
+            }
+            Shape::Superformula(superformula) => {
+                superformula.drag_move(press_position, cursor_position)
             }
         }
     }
@@ -417,6 +465,7 @@ enum ShapeKind {
     None,
     Sphere,
     RoundedBox,
+    Superformula,
 }
 
 #[repr(C)]
@@ -472,6 +521,31 @@ impl RoundedBox {
         let [press_x, press_y] = press_position;
         let new_pos = [x - press_x, y - press_y];
         let [center_x, center_y] = array::from_fn(|i| (new_pos[i] + self.half_size[i]).round());
+        let [_, _, center_z] = self.center;
+        self.center = [center_x, center_y, center_z];
+    }
+}
+
+#[repr(C)]
+#[derive(Default, Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Superformula {
+    center: [f32; 3],
+    sides: f32,
+    radii: [f32; 2],
+    exponents: [f32; 3],
+}
+impl Superformula {
+    fn bounding_box(&self) -> AABB {
+        let min = array::from_fn(|i| self.center[i] - self.radii[i]);
+        let max = array::from_fn(|i| self.center[i] + self.radii[i]);
+
+        AABB { min, max }
+    }
+    fn drag_move(&mut self, press_position: [f32; 2], cursor_position: [f32; 2]) {
+        let [x, y] = cursor_position;
+        let [press_x, press_y] = press_position;
+        let new_pos = [x - press_x, y - press_y];
+        let [center_x, center_y] = array::from_fn(|i| (new_pos[i] + self.radii[i]).round());
         let [_, _, center_z] = self.center;
         self.center = [center_x, center_y, center_z];
     }
