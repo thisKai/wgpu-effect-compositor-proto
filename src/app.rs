@@ -162,7 +162,7 @@ impl WgpuEnv {
             self.surface.configure(&self.device, &self.config);
         }
         self.renderer
-            .resize(&self.queue, new_size.width, new_size.height);
+            .resize(&self.device, &self.queue, new_size.width, new_size.height);
     }
     fn cursor_move(&mut self, position: PhysicalPosition<f64>) {
         self.renderer

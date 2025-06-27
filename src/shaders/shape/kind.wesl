@@ -1,0 +1,1 @@
+const CIRCLE = 1;

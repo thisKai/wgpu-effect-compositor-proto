@@ -19,4 +19,6 @@ fn main() {
     wesl.build_artifact("wallpaper.wesl", "wallpaper");
     wesl.build_artifact("glass.wesl", "glass");
     wesl.build_artifact("raymarching.wesl", "raymarching");
+    wesl.build_artifact("glass_shapes.wesl", "glass_shapes");
+    wesl.build_artifact("silhouette_sdf.wesl", "silhouette_sdf");
 }
