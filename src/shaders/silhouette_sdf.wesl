@@ -1,22 +1,10 @@
 import super::util::{
-    system::{viewport, viewport_cover_ratio, cursor, px, px2_rh},
+    system::{viewport_cover_ratio, px},
     quad_vertex::{get_quad_vertex_sign, flip_y},
-    anti_alias::edge_alpha,
 };
 import super::shape::{
-    kind::CIRCLE,
-    storage::bindings::{
-        shape_count,
-        shape_appearance,
-    },
-    sdf::{
-        shape_query,
-        ShapeQuery,
-        anti_alias::edge_alpha,
-        blend::{smin, smin_blend},
-        exact::circle_sd,
-    },
-    raymarching::raymarch_shape_layer_extrusion_downwards,
+    storage::bindings::{shape_count, shape_appearance},
+    sdf::{shape_query, ShapeQuery, blend::smin_blend},
 };
 
 @vertex
@@ -27,14 +15,14 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOut {
     let vertex_pos = flip_y(vertex_sign * viewport_cover_ratio());
 
     out.position = vec4f(vertex_sign, 0, 1);
-    out.uv = vertex_pos;
+    out.frag_coord = vertex_pos;
 
     return out;
 }
 
 struct VertexOut {
     @builtin(position) position: vec4f,
-    @location(0) uv: vec2f,
+    @location(0) frag_coord: vec2f,
 }
 
 
@@ -49,7 +37,7 @@ fn fs_main(in: VertexOut) -> FragmentOut {
     var shape: ShapeQuery;
 
     for (var shape_id: u32 = 0; shape_id < shape_count(); shape_id++) {
-        shape = shape_query(in.uv, shape_id);
+        shape = shape_query(in.frag_coord, shape_id);
 
         let appearance = shape_appearance(shape_id);
 
