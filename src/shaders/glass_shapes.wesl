@@ -1,14 +1,18 @@
 import super::util::{
-    system::{viewport, viewport_cover_ratio, cursor, px, px2_rh},
+    system::px,
     quad_vertex::{get_quad_vertex_sign, flip_y},
-    anti_alias::edge_alpha,
+    color::{
+        sat,
+        rygcbv_r,
+        rygcbv_g,
+        rygcbv_b,
+        rygcbv_y,
+        rygcbv_c,
+        rygcbv_v,
+        rygcbv_rgb,
+    },
 };
 import super::shape::{
-    kind::CIRCLE,
-    storage::bindings::{
-        shape_count,
-        shape_appearance,
-    },
     sdf::{
         extrude::extrude_p,
         anti_alias::edge_alpha,
@@ -68,8 +72,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
     if result == RAYMARCH_HIT {
         let normal = scene_normal(frag_ray.state.position);
         let ior = 1.5;
-        let refracted_sample_coord = refraction_texture_coord(frag_ray, normal, 1.0 / ior);
-        let sample = textureSample(wallpaper_texture, wallpaper_sampler, refracted_sample_coord).rgb;
+        let sample = chromatic_refraction_sample(frag_ray, normal, 1.0 / ior);
 
         return vec4f(sqrt(sample), alpha);
     }
@@ -77,6 +80,34 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
     let tint_color = textureSample(tint_color_texture, tint_color_sampler, in.texture_coord);
 
     return vec4f(sqrt(tint_color.rgb), tint_color.a * alpha);
+}
+
+fn chromatic_refraction_sample(collided_ray: Ray, normal: vec3f, ior: f32) -> vec3f {
+    let ior_shift = 0.1;
+    let ior_ryg = (vec3f(0, 1, 2) * ior_shift) + ior;
+    let ior_cbv = (vec3f(3, 4, 5) * ior_shift) + ior;
+
+    let ior_rgb = vec3f(ior_ryg.r, ior_ryg.z, ior_cbv.y);
+    let ior_ycv = vec3f(ior_ryg.y, ior_cbv.xz);
+
+    let refraction_r = refraction_texture_coord(collided_ray, normal, 1.0 / ior_rgb.r);
+    let refraction_g = refraction_texture_coord(collided_ray, normal, 1.0 / ior_rgb.g);
+    let refraction_b = refraction_texture_coord(collided_ray, normal, 1.0 / ior_rgb.b);
+
+    let refraction_y = refraction_texture_coord(collided_ray, normal, 1.0 / ior_ycv.r);
+    let refraction_c = refraction_texture_coord(collided_ray, normal, 1.0 / ior_ycv.g);
+    let refraction_v = refraction_texture_coord(collided_ray, normal, 1.0 / ior_ycv.b);
+
+    let sample_r = rygcbv_r(textureSample(wallpaper_texture, wallpaper_sampler, refraction_r).rgb);
+    let sample_g = rygcbv_g(textureSample(wallpaper_texture, wallpaper_sampler, refraction_g).rgb);
+    let sample_b = rygcbv_b(textureSample(wallpaper_texture, wallpaper_sampler, refraction_b).rgb);
+
+    let sample_y = rygcbv_y(textureSample(wallpaper_texture, wallpaper_sampler, refraction_r).rgb);
+    let sample_c = rygcbv_c(textureSample(wallpaper_texture, wallpaper_sampler, refraction_g).rgb);
+    let sample_v = rygcbv_v(textureSample(wallpaper_texture, wallpaper_sampler, refraction_b).rgb);
+
+    let sample = rygcbv_rgb(sample_r, sample_y, sample_g, sample_c, sample_b, sample_v);
+    return sat(sample, 1.25);
 }
 
 fn refraction_texture_coord(collided_ray: Ray, normal: vec3f, ior: f32) -> vec2f {
