@@ -22,6 +22,26 @@ impl GlassLayer {
     }
 }
 impl GlassLayer {
+    pub fn cursor_move(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        system: &SystemGroup,
+        wallpaper: &Wallpaper,
+        x: f64,
+        y: f64,
+    ) {
+        self.shapes
+            .cursor_move(device, queue, system, wallpaper, x, y);
+    }
+    pub fn mouse_press(&mut self, queue: &wgpu::Queue) {
+        self.shapes.mouse_press(queue);
+    }
+    pub fn mouse_release(&mut self, queue: &wgpu::Queue) {
+        self.shapes.mouse_release(queue);
+    }
+}
+impl GlassLayer {
     pub fn draw(
         &self,
         render_pass: &mut wgpu::RenderPass,

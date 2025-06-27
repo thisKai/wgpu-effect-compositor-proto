@@ -166,7 +166,7 @@ impl WgpuEnv {
     }
     fn cursor_move(&mut self, position: PhysicalPosition<f64>) {
         self.renderer
-            .cursor_move(&self.queue, position.x, position.y);
+            .cursor_move(&self.device, &self.queue, position.x, position.y);
     }
     fn cursor_leave(&self) {
         self.renderer.cursor_leave(&self.queue);

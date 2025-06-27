@@ -34,3 +34,8 @@ impl From<u32> for ShapeKindIndex {
         Self(value)
     }
 }
+impl From<ShapeKindIndex> for u32 {
+    fn from(value: ShapeKindIndex) -> Self {
+        value.0
+    }
+}

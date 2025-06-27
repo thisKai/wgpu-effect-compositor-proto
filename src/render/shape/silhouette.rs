@@ -37,11 +37,11 @@ impl SilhouetteSdf {
         let [sdf_view, tint_color_view] = self.bindings.textures.views();
 
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
+            label: Some("silhouette sdf render encoder"),
         });
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
+                label: Some("silhouette sdf render pass"),
                 color_attachments: &[
                     Some(wgpu::RenderPassColorAttachment {
                         view: &sdf_view,
@@ -83,11 +83,11 @@ impl SilhouetteSdf {
         let bindings = SilhouetteSdfGroup::new(device, size);
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("silhouette sdf layer shader"),
+            label: Some("silhouette sdf shader"),
             source: wgpu::ShaderSource::Wgsl(include_wesl!("silhouette_sdf").into()),
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("silhouette sdf render pipeline layout"),
+            label: Some("silhouette sdf pipeline layout"),
             bind_group_layouts: &[
                 &system.bind_group_layout,
                 &wallpaper.texture.bind_group_layout,
@@ -96,7 +96,7 @@ impl SilhouetteSdf {
             push_constant_ranges: &[],
         });
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("silhouette sdf render pipeline"),
+            label: Some("silhouette sdf pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
@@ -271,7 +271,7 @@ impl SilhouetteSdfTextures {
                     resource: wgpu::BindingResource::Sampler(&tint_color_sampler),
                 },
             ],
-            label: Some("read sdf texture bind group"),
+            label: Some("read silhouette sdf textures bind group"),
         })
     }
     fn read_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
@@ -310,7 +310,7 @@ impl SilhouetteSdfTextures {
                     count: None,
                 },
             ],
-            label: Some("read sdf texture bind group layout"),
+            label: Some("read silhouette sdf textures bind group layout"),
         })
     }
 }

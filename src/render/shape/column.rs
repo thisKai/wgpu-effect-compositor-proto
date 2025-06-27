@@ -1,4 +1,11 @@
+use std::{
+    ops::{Index, IndexMut},
+    slice, vec,
+};
+
 use wgpu::util::DeviceExt;
+
+use super::component::ShapeKindIndex;
 
 pub struct Column<T> {
     items: Vec<T>,
@@ -43,6 +50,9 @@ impl<T> GpuColumn<T> {
     pub fn insert(&mut self, item: T) -> u32 {
         self.column.insert(item)
     }
+    pub fn iter(&self) -> slice::Iter<T> {
+        self.column.items.iter()
+    }
 }
 impl<T> GpuColumn<T>
 where
@@ -57,11 +67,59 @@ where
             }),
         );
     }
+    pub fn update_buffer(&mut self, queue: &wgpu::Queue) {
+        queue.write_buffer(&self.buffer.as_ref().unwrap(), 0, self.column.as_bytes());
+    }
     pub fn bind_group_entry(&self, binding: u32) -> wgpu::BindGroupEntry {
         wgpu::BindGroupEntry {
             binding,
             resource: self.buffer.as_ref().unwrap().as_entire_binding(),
         }
+    }
+}
+
+impl<T> Index<usize> for GpuColumn<T> {
+    type Output = T;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.column.items[index]
+    }
+}
+impl<T> IndexMut<usize> for GpuColumn<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.column.items[index]
+    }
+}
+
+impl<T> Index<u32> for GpuColumn<T> {
+    type Output = T;
+    fn index(&self, index: u32) -> &Self::Output {
+        &self[index as usize]
+    }
+}
+impl<T> IndexMut<u32> for GpuColumn<T> {
+    fn index_mut(&mut self, index: u32) -> &mut Self::Output {
+        &mut self[index as usize]
+    }
+}
+
+impl<T> Index<ShapeKindIndex> for GpuColumn<T> {
+    type Output = T;
+    fn index(&self, index: ShapeKindIndex) -> &Self::Output {
+        &self[u32::from(index)]
+    }
+}
+impl<T> IndexMut<ShapeKindIndex> for GpuColumn<T> {
+    fn index_mut(&mut self, index: ShapeKindIndex) -> &mut Self::Output {
+        &mut self[u32::from(index)]
+    }
+}
+
+impl<'a, T> IntoIterator for &'a GpuColumn<T> {
+    type Item = &'a T;
+    type IntoIter = slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.column.items.iter()
     }
 }
 
