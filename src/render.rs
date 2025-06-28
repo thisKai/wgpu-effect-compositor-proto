@@ -61,8 +61,8 @@ impl Renderer {
         // let raymarching = Raymarching::new(device, config, &system, &wallpaper);
         let mut glass_layer = GlassLayer::new(device, config, &system, &wallpaper);
 
-        glass_layer.insert_circle([128.0; 2], 64.0, 0x3399FFFF.into());
-        glass_layer.insert_circle([256.0, 128.0], 64.0, 0xFF4444FF.into());
+        glass_layer.insert_circle([128.0; 2], 48.0, 0x3399FFFF.into());
+        glass_layer.insert_circle([256.0, 128.0], 48.0, 0xFF4444FF.into());
         glass_layer.init_gpu(device, queue, &system, &wallpaper);
 
         Self {
