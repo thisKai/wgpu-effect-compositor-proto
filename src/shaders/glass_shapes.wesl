@@ -69,62 +69,55 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         discard;
     }
 
-    var frag_ray = frag_ray_down(in.frag_coord);
-    var result = ray_march(&frag_ray);
+    let normal_depth_front_out = normal_map_and_depth(in.frag_coord);
+    let normal_front_out = normal_depth_front_out.normal;
+    let hit_front_out = frag_ray_hit(in.frag_coord, normal_depth_front_out.depth);
 
-    if result == RAYMARCH_HIT {
-        let hit_front_out = ray_hit(frag_ray);
+    let ior = 1.5;
 
-        let normal_depth_front_out = normal_map_and_depth(frag_ray.state.position.xy);
-        let normal_front_out = normal_depth_front_out.normal;
+    // var sample = chromatic_refraction_sample(hit_front_out, normal_front_out, 1.0 / ior);
 
-        let ior = 1.5;
+    var sample = double_chromatic_refraction_sample(hit_front_out, normal_front_out, 1.0 / ior);
 
-        // var sample = chromatic_refraction_sample(hit_front_out, normal, 1.0 / ior);
+    // let view_dir = frag_ray.direction;
 
-        var sample = double_chromatic_refraction_sample(hit_front_out, normal_front_out, 1.0 / ior);
+    // let fresnel_intensity = fresnel(view_dir, normal);
 
-        // let view_dir = frag_ray.direction;
+    // let light_dir = normalize(vec3f(-32, -128, 1));
+    // let back_inside_light_dir = normalize(vec3f(-16, -64, 2));
 
-        // let fresnel_intensity = fresnel(view_dir, normal);
+    // let diffuse_product = max(0.0, dot(front_normal, light_dir));
+    // let back_inside_diffuse_product = max(0.0, dot(-normal2, back_inside_light_dir));
 
-        // let light_dir = normalize(vec3f(-32, -128, 1));
-        // let back_inside_light_dir = normalize(vec3f(-16, -64, 2));
+    // let half_dir = normalize(view_dir + light_dir);
+    // let specular_coefficient = 32.0;
+    // let specular_product = max(0.0, dot(front_normal, half_dir));
+    // let specular_intensity = pow(specular_product, specular_coefficient);
 
-        // let diffuse_product = max(0.0, dot(front_normal, light_dir));
-        // let back_inside_diffuse_product = max(0.0, dot(-normal2, back_inside_light_dir));
+    // let back_inside_half_dir = normalize(view_dir + back_inside_light_dir);
+    // let back_inside_specular_coefficient = 32.0;
+    // let back_inside_specular_product = max(0.0, dot(-normal2, back_inside_half_dir));
+    // let back_inside_specular_intensity = pow(back_inside_specular_product, back_inside_specular_coefficient);
 
-        // let half_dir = normalize(view_dir + light_dir);
-        // let specular_coefficient = 32.0;
-        // let specular_product = max(0.0, dot(front_normal, half_dir));
-        // let specular_intensity = pow(specular_product, specular_coefficient);
+    // let tint_color = textureSample(tint_color_texture, tint_color_sampler, in.texture_coord);
 
-        // let back_inside_half_dir = normalize(view_dir + back_inside_light_dir);
-        // let back_inside_specular_coefficient = 32.0;
-        // let back_inside_specular_product = max(0.0, dot(-normal2, back_inside_half_dir));
-        // let back_inside_specular_intensity = pow(back_inside_specular_product, back_inside_specular_coefficient);
+    // sample *= 1 + (2 * fresnel_intensity);
+    // sample += vec3f(1) * fresnel_intensity;
 
-        // let tint_color = textureSample(tint_color_texture, tint_color_sampler, in.texture_coord);
+    // sample += tint_color.rgb * diffuse_product;
+    // sample += tint_color.rgb * back_inside_diffuse_product;
+    // sample += tint_color.rgb * max(diffuse_product, back_inside_diffuse_product);
 
-        // sample *= 1 + (2 * fresnel_intensity);
-        // sample += vec3f(1) * fresnel_intensity;
+    // sample *= 1 + (4 * specular_intensity);
+    // sample *= 1 + (4 * back_inside_specular_intensity);
+    // sample += vec3f(1) * specular_intensity;
+    // sample += vec3f(1) * back_inside_specular_intensity;
 
-        // sample += tint_color.rgb * diffuse_product;
-        // sample += tint_color.rgb * back_inside_diffuse_product;
-        // sample += tint_color.rgb * max(diffuse_product, back_inside_diffuse_product);
+    // sample += vec3f(1) * (specular_intensity + back_inside_specular_intensity);
+    // sample += tint_color.rgb * back_inside_specular_intensity;
 
-        // sample *= 1 + (4 * specular_intensity);
-        // sample *= 1 + (4 * back_inside_specular_intensity);
-        // sample += vec3f(1) * specular_intensity;
-        // sample += vec3f(1) * back_inside_specular_intensity;
 
-        // sample += vec3f(1) * (specular_intensity + back_inside_specular_intensity);
-        // sample += tint_color.rgb * back_inside_specular_intensity;
-
-        return vec4f(sqrt(sample) * alpha, alpha);
-    }
-
-    return vec4f(0);
+    return vec4f(sqrt(sample) * alpha, alpha);
 }
 
 fn double_chromatic_refraction_sample(hit: RayHit, normal: vec3f, ior: f32) -> vec3f {
