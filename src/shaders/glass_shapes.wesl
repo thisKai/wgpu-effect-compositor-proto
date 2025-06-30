@@ -13,22 +13,15 @@ import super::util::{
     },
 };
 import super::shape::{
-    sdf::{
-        extrude::extrude_p,
-        anti_alias::edge_alpha,
-    },
+    sdf::anti_alias::edge_alpha,
     raymarching::{
         ray::{Ray, ray, frag_ray_down, ray_incident},
-        march::{
-            ray_march_step,
-            RayMarch,
-            RayMarchResult,
-            RAYMARCH_MISSED_STEPS,
-            RAYMARCH_MISSED_DISTANCE,
-            RAYMARCH_HIT,
-            MAX_STEPS,
-            MAX_RAY_DISTANCE,
-            MIN_SURFACE_DISTANCE,
+        march::{ray_march_step, RAYMARCH_HIT},
+        scene::{
+            ray_march,
+            ray_march_to_bg,
+            scene_normal,
+            scene_silhouette_sd_sample,
         },
     },
 };
@@ -80,7 +73,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         // let refraction_r = refraction_texture_coord(frag_ray, normal, 1.0 / ior);
 
         var sample = double_chromatic_refraction_sample(frag_ray, normal, 1.0 / ior);
-        let refract_tex_coord = double_refraction_texture_coord(frag_ray, normal, 1.0 / ior);
+        // let refract_tex_coord = double_refraction_texture_coord(frag_ray, normal, 1.0 / ior);
 
         // if true || abs(refract_out_ray.state.position.z - 1) < px(1) {
         // var sample = textureSample(wallpaper_texture, wallpaper_sampler, refract_tex_coord).rgb;
@@ -132,11 +125,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         return vec4f(sqrt(sample) * alpha, alpha);
     }
 
-    let tint_color = textureSample(tint_color_texture, tint_color_sampler, in.texture_coord);
-
-    return vec4f(sqrt(tint_color.rgb), tint_color.a * alpha);
+    return vec4f(0);
 }
-
 
 fn double_chromatic_refraction_sample(collided_ray: Ray, normal: vec3f, ior: f32) -> vec3f {
     let ior_shift = ior / 10;
@@ -237,62 +227,6 @@ fn refraction_coord(collided_ray: Ray, normal: vec3f, ior: f32) -> vec2f {
     return texture_coord_rh;
 }
 
-fn ray_march(ray: ptr<function, Ray>) -> RayMarchResult {
-    for (var i = 0; i < MAX_STEPS; i++) {
-        let scene_d = scene_sd(ray.state.position);
-
-        ray_march_step(ray, abs(scene_d));
-
-        if abs(scene_d) < MIN_SURFACE_DISTANCE {
-            return RAYMARCH_HIT;
-        }
-        if ray.state.distance > MAX_RAY_DISTANCE {
-            return RAYMARCH_MISSED_DISTANCE;
-        }
-    }
-    return RAYMARCH_MISSED_STEPS;
-}
-fn ray_march_to_bg(ray: ptr<function, Ray>) -> RayMarchResult {
-    for (var i = 0; i < MAX_STEPS; i++) {
-        let bg_d = bg_sd(ray.state.position);
-
-        ray_march_step(ray, bg_d);
-
-        if bg_d < MIN_SURFACE_DISTANCE {
-            return RAYMARCH_HIT;
-        }
-        if ray.state.distance > MAX_RAY_DISTANCE {
-            return RAYMARCH_MISSED_DISTANCE;
-        }
-    }
-    return RAYMARCH_MISSED_STEPS;
-}
-
-fn scene_sd(p: vec3f) -> f32 {
-    let edge_r = px(32);
-    let d2 = scene_silhouette_sd(p.xy) + edge_r;
-    let center_z = 1.0 - px(64);
-    let height = px(32);
-    let extruded_d = extrude_p(d2, p.z - center_z, height, 4);
-    return extruded_d - edge_r;
-}
-fn bg_sd(p: vec3f) -> f32 {
-    return 1.0 - p.z;
-}
-fn scene_normal(p: vec3f) -> vec3f {
-    let h = px(1);
-    let k = vec2f(1, -1);
-    return normalize(k.xyy * scene_sd(p + k.xyy * h) + k.yyx * scene_sd(p + k.yyx * h) + k.yxy * scene_sd(p + k.yxy * h) + k.xxx * scene_sd(p + k.xxx * h));
-}
-
-fn scene_silhouette_sd(p: vec2f) -> f32 {
-    return scene_silhouette_sd_sample(0.5 + 0.5 * p);
-}
-fn scene_silhouette_sd_sample(texture_coord: vec2f) -> f32 {
-    return textureSample(sdf_texture, sdf_sampler, texture_coord).r;
-}
-
-
 fn fresnel(eye_vector: vec3f, normal: vec3f) -> f32 {
     return pow(1.0 + dot(eye_vector, normal), 5.0);
 }
@@ -302,13 +236,3 @@ fn fresnel(eye_vector: vec3f, normal: vec3f) -> f32 {
 var wallpaper_texture: texture_2d<f32>;
 @group(1) @binding(1)
 var wallpaper_sampler: sampler;
-
-@group(3) @binding(0)
-var sdf_texture: texture_2d<f32>;
-@group(3) @binding(1)
-var sdf_sampler: sampler;
-
-@group(3) @binding(2)
-var tint_color_texture: texture_2d<f32>;
-@group(3) @binding(3)
-var tint_color_sampler: sampler;
