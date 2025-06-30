@@ -52,7 +52,8 @@ impl GlassLayer {
         render_pass.set_bind_group(0, &system.bind_group, &[]);
         render_pass.set_bind_group(1, self.shapes.bind_group(), &[]);
         render_pass.set_bind_group(2, self.shapes.silhouette_bind_group(), &[]);
-        render_pass.set_bind_group(3, &wallpaper.texture.bind_group, &[]);
+        render_pass.set_bind_group(3, self.shapes.light_maps_bind_group(), &[]);
+        render_pass.set_bind_group(4, &wallpaper.texture.bind_group, &[]);
         render_pass.draw(0..6, 0..1);
     }
     pub fn resize(
@@ -86,6 +87,7 @@ impl GlassLayer {
                 &system.bind_group_layout,
                 shapes.bind_group_layout(),
                 shapes.silhouette_bind_group_layout(),
+                shapes.light_maps_bind_group_layout(),
                 &wallpaper.texture.bind_group_layout,
             ],
             push_constant_ranges: &[],

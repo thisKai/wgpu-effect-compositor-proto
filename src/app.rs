@@ -219,7 +219,10 @@ impl WgpuEnv {
                 required_limits: if cfg!(target_arch = "wasm32") {
                     wgpu::Limits::downlevel_webgl2_defaults()
                 } else {
-                    wgpu::Limits::default()
+                    wgpu::Limits {
+                        max_bind_groups: 5,
+                        ..Default::default()
+                    }
                 },
                 label: None,
                 memory_hints: Default::default(),

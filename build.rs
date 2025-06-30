@@ -21,4 +21,5 @@ fn main() {
     wesl.build_artifact("raymarching.wesl", "raymarching");
     wesl.build_artifact("glass_shapes.wesl", "glass_shapes");
     wesl.build_artifact("silhouette_sdf.wesl", "silhouette_sdf");
+    wesl.build_artifact("light_maps.wesl", "light_maps");
 }

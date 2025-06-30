@@ -1,5 +1,6 @@
 use column::GpuColumn;
 use component::{RGBA, ShapeKind, ShapeKindIndex, vec2f};
+use light_map::LightMaps;
 use silhouette::SilhouetteSdf;
 
 use super::{
@@ -10,6 +11,7 @@ use super::{
 
 mod column;
 pub mod component;
+pub mod light_map;
 pub mod silhouette;
 
 pub struct Shapes {
@@ -17,6 +19,7 @@ pub struct Shapes {
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: Option<wgpu::BindGroup>,
     silhouette: SilhouetteSdf,
+    light_maps: LightMaps,
     state: PointerState,
 }
 impl Shapes {
@@ -25,12 +28,20 @@ impl Shapes {
         let bind_group_layout = ShapesStorage::bind_group_layout(device);
 
         let silhouette = SilhouetteSdf::new(device, system, &bind_group_layout, size);
+        let light_maps = LightMaps::new(
+            device,
+            system,
+            &bind_group_layout,
+            silhouette.bind_group_layout(),
+            size,
+        );
 
         Self {
             storage,
             bind_group_layout,
             bind_group: None,
             silhouette,
+            light_maps,
             state: Default::default(),
         }
     }
@@ -51,6 +62,14 @@ impl Shapes {
             self.bind_group.as_ref().unwrap(),
             size,
         );
+        self.light_maps.resize(
+            device,
+            queue,
+            system,
+            self.bind_group.as_ref().unwrap(),
+            self.silhouette.bind_group(),
+            size,
+        );
     }
     pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
         &self.bind_group_layout
@@ -63,6 +82,12 @@ impl Shapes {
     }
     pub fn silhouette_bind_group(&self) -> &wgpu::BindGroup {
         self.silhouette.bind_group()
+    }
+    pub fn light_maps_bind_group_layout(&self) -> &wgpu::BindGroupLayout {
+        &self.light_maps.bind_group_layout()
+    }
+    pub fn light_maps_bind_group(&self) -> &wgpu::BindGroup {
+        self.light_maps.bind_group()
     }
 
     pub fn init_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, system: &SystemGroup) {
@@ -125,6 +150,13 @@ impl Shapes {
                     .drag_move(queue, index as _, press_position, [x as _, y as _]);
                 self.silhouette
                     .generate(device, queue, system, &self.bind_group());
+                self.light_maps.generate(
+                    device,
+                    queue,
+                    system,
+                    &self.bind_group(),
+                    self.silhouette.bind_group(),
+                );
 
                 PointerState::Dragging {
                     index,
