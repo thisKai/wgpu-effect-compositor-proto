@@ -28,13 +28,8 @@ impl Renderer {
     }
     pub fn resize(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32) {
         self.system.resize(queue, width, height);
-        self.glass_layer.resize(
-            device,
-            queue,
-            &self.system,
-            &self.wallpaper,
-            [width, height],
-        );
+        self.glass_layer
+            .resize(device, queue, &self.system, [width, height]);
     }
     pub fn cursor_move(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, x: f64, y: f64) {
         self.system.cursor_move(queue, x, y);
@@ -63,7 +58,7 @@ impl Renderer {
 
         glass_layer.insert_circle([128.0; 2], 48.0, 0x3399FFFF.into());
         glass_layer.insert_circle([256.0, 128.0], 48.0, 0xFF4444FF.into());
-        glass_layer.init_gpu(device, queue, &system, &wallpaper);
+        glass_layer.init_gpu(device, queue, &system);
 
         Self {
             system,

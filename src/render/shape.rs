@@ -64,13 +64,8 @@ impl Shapes {
     pub fn silhouette_bind_group(&self) -> &wgpu::BindGroup {
         self.silhouette.bind_group()
     }
-    pub fn init_gpu(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        system: &SystemGroup,
-        wallpaper: &Wallpaper,
-    ) {
+
+    pub fn init_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, system: &SystemGroup) {
         self.storage.init_buffers(device);
         let bind_group = self.storage.bind_group(device, &self.bind_group_layout);
 

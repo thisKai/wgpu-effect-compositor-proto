@@ -60,19 +60,12 @@ impl GlassLayer {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         system: &SystemGroup,
-        wallpaper: &Wallpaper,
         size: [u32; 2],
     ) {
         self.shapes.resize(device, queue, system, size);
     }
-    pub fn init_gpu(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        system: &SystemGroup,
-        wallpaper: &Wallpaper,
-    ) {
-        self.shapes.init_gpu(device, queue, system, wallpaper);
+    pub fn init_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, system: &SystemGroup) {
+        self.shapes.init_gpu(device, queue, system);
     }
     pub fn new(
         device: &wgpu::Device,
