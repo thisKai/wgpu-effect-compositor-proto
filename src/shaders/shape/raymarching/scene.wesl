@@ -76,12 +76,12 @@ fn tint_color(texture_coord: vec2f) {
     return textureSample(tint_color_texture, tint_color_sampler, texture_coord);
 }
 
-@group(3) @binding(0)
+@group(2) @binding(0)
 var sdf_texture: texture_2d<f32>;
-@group(3) @binding(1)
+@group(2) @binding(1)
 var sdf_sampler: sampler;
 
-@group(3) @binding(2)
+@group(2) @binding(2)
 var tint_color_texture: texture_2d<f32>;
-@group(3) @binding(3)
+@group(2) @binding(3)
 var tint_color_sampler: sampler;

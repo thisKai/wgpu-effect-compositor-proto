@@ -45,8 +45,8 @@ struct Circle {
     radius: f32,
 }
 
-@group(2) @binding(0) var<storage, read> shapes: array<ShapeEntry>;
-@group(2) @binding(1) var<storage, read> positions: array<ShapePosition>;
-@group(2) @binding(2) var<storage, read> appearances: array<ShapeAppearance>;
+@group(1) @binding(0) var<storage, read> shapes: array<ShapeEntry>;
+@group(1) @binding(1) var<storage, read> positions: array<ShapePosition>;
+@group(1) @binding(2) var<storage, read> appearances: array<ShapeAppearance>;
 
-@group(2) @binding(3) var<storage, read> circles: array<Circle>;
+@group(1) @binding(3) var<storage, read> circles: array<Circle>;

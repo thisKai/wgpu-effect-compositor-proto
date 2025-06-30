@@ -232,7 +232,7 @@ fn fresnel(eye_vector: vec3f, normal: vec3f) -> f32 {
 }
 
 
-@group(1) @binding(0)
+@group(3) @binding(0)
 var wallpaper_texture: texture_2d<f32>;
-@group(1) @binding(1)
+@group(3) @binding(1)
 var wallpaper_sampler: sampler;

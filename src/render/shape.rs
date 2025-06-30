@@ -20,16 +20,11 @@ pub struct Shapes {
     state: PointerState,
 }
 impl Shapes {
-    pub fn new(
-        device: &wgpu::Device,
-        system: &SystemGroup,
-        wallpaper: &Wallpaper,
-        size: [u32; 2],
-    ) -> Self {
+    pub fn new(device: &wgpu::Device, system: &SystemGroup, size: [u32; 2]) -> Self {
         let storage = ShapesStorage::new();
         let bind_group_layout = ShapesStorage::bind_group_layout(device);
 
-        let silhouette = SilhouetteSdf::new(device, system, wallpaper, &bind_group_layout, size);
+        let silhouette = SilhouetteSdf::new(device, system, &bind_group_layout, size);
 
         Self {
             storage,
@@ -47,14 +42,12 @@ impl Shapes {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         system: &SystemGroup,
-        wallpaper: &Wallpaper,
         size: [u32; 2],
     ) {
         self.silhouette.resize(
             device,
             queue,
             system,
-            wallpaper,
             self.bind_group.as_ref().unwrap(),
             size,
         );
@@ -81,8 +74,7 @@ impl Shapes {
         self.storage.init_buffers(device);
         let bind_group = self.storage.bind_group(device, &self.bind_group_layout);
 
-        self.silhouette
-            .generate(device, queue, system, wallpaper, &bind_group);
+        self.silhouette.generate(device, queue, system, &bind_group);
 
         self.bind_group = Some(bind_group);
     }
@@ -137,7 +129,7 @@ impl Shapes {
                 self.storage
                     .drag_move(queue, index as _, press_position, [x as _, y as _]);
                 self.silhouette
-                    .generate(device, queue, system, wallpaper, &self.bind_group());
+                    .generate(device, queue, system, &self.bind_group());
 
                 PointerState::Dragging {
                     index,

@@ -50,9 +50,9 @@ impl GlassLayer {
     ) {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, &system.bind_group, &[]);
-        render_pass.set_bind_group(1, &wallpaper.texture.bind_group, &[]);
-        render_pass.set_bind_group(2, self.shapes.bind_group(), &[]);
-        render_pass.set_bind_group(3, self.shapes.silhouette_bind_group(), &[]);
+        render_pass.set_bind_group(1, self.shapes.bind_group(), &[]);
+        render_pass.set_bind_group(2, self.shapes.silhouette_bind_group(), &[]);
+        render_pass.set_bind_group(3, &wallpaper.texture.bind_group, &[]);
         render_pass.draw(0..6, 0..1);
     }
     pub fn resize(
@@ -63,7 +63,7 @@ impl GlassLayer {
         wallpaper: &Wallpaper,
         size: [u32; 2],
     ) {
-        self.shapes.resize(device, queue, system, wallpaper, size);
+        self.shapes.resize(device, queue, system, size);
     }
     pub fn init_gpu(
         &mut self,
@@ -80,7 +80,7 @@ impl GlassLayer {
         system: &SystemGroup,
         wallpaper: &Wallpaper,
     ) -> Self {
-        let shapes = Shapes::new(device, system, wallpaper, [config.width, config.height]);
+        let shapes = Shapes::new(device, system, [config.width, config.height]);
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("glass shapes layer shader"),
@@ -91,9 +91,9 @@ impl GlassLayer {
             label: Some("glass shapes layer render pipeline layout"),
             bind_group_layouts: &[
                 &system.bind_group_layout,
-                &wallpaper.texture.bind_group_layout,
                 shapes.bind_group_layout(),
                 shapes.silhouette_bind_group_layout(),
+                &wallpaper.texture.bind_group_layout,
             ],
             push_constant_ranges: &[],
         });

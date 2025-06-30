@@ -1,6 +1,6 @@
 use wesl::include_wesl;
 
-use crate::render::{system::SystemGroup, wallpaper::Wallpaper};
+use crate::render::system::SystemGroup;
 
 pub struct SilhouetteSdf {
     bindings: SilhouetteSdfGroup,
@@ -19,19 +19,17 @@ impl SilhouetteSdf {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         system: &SystemGroup,
-        wallpaper: &Wallpaper,
         shapes: &wgpu::BindGroup,
         size: [u32; 2],
     ) {
         self.bindings.resize(device, size);
-        self.generate(device, queue, system, wallpaper, shapes);
+        self.generate(device, queue, system, shapes);
     }
     pub fn generate(
         &self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         system: &SystemGroup,
-        wallpaper: &Wallpaper,
         shapes: &wgpu::BindGroup,
     ) {
         let [sdf_view, tint_color_view] = self.bindings.textures.views();
@@ -67,8 +65,7 @@ impl SilhouetteSdf {
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, &system.bind_group, &[]);
-            render_pass.set_bind_group(1, &wallpaper.texture.bind_group, &[]);
-            render_pass.set_bind_group(2, shapes, &[]);
+            render_pass.set_bind_group(1, shapes, &[]);
             render_pass.draw(0..6, 0..1);
         }
         queue.submit(std::iter::once(encoder.finish()));
@@ -76,7 +73,6 @@ impl SilhouetteSdf {
     pub fn new(
         device: &wgpu::Device,
         system: &SystemGroup,
-        wallpaper: &Wallpaper,
         shapes_layout: &wgpu::BindGroupLayout,
         size: [u32; 2],
     ) -> Self {
@@ -88,11 +84,7 @@ impl SilhouetteSdf {
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("silhouette sdf pipeline layout"),
-            bind_group_layouts: &[
-                &system.bind_group_layout,
-                &wallpaper.texture.bind_group_layout,
-                shapes_layout,
-            ],
+            bind_group_layouts: &[&system.bind_group_layout, shapes_layout],
             push_constant_ranges: &[],
         });
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
